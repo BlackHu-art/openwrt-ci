@@ -11,6 +11,9 @@ on:
   # schedule:
   #   - cron: 0 20 * * *
 
+#CI权限
+permissions: write-all
+
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt.git
   REPO_BRANCH: master
@@ -23,6 +26,7 @@ env:
   FIRMWARE_TAG: x86-64
   TZ: Asia/Shanghai
 
+#CI任务
 jobs:
   Build:
     runs-on: ubuntu-22.04
