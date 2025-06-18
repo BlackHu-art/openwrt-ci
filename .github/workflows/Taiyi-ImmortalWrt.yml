@@ -1,10 +1,18 @@
 name: Taiyi-ImmortalWrt
 
 on:
+  #自动编译：当Auto-Clean运行完成后
+  workflow_run:
+  workflows: ["Auto-Clean"]
+  types:
+    - completed
   workflow_dispatch:
   workflow_call:
   # schedule:
   #   - cron: 0 20 * * *
+
+#CI权限
+permissions: write-all
 
 env:
   REPO_URL: https://github.com/laipeng668/immortalwrt.git

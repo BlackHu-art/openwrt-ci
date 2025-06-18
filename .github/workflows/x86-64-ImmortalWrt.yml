@@ -1,6 +1,11 @@
 name: x86-64-ImmortalWrt
 
 on:
+  #自动编译：当Auto-Clean运行完成后
+  workflow_run:
+  workflows: ["Auto-Clean"]
+  types:
+    - completed
   workflow_dispatch:
   workflow_call:
   # schedule:
