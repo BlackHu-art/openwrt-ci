@@ -1,10 +1,15 @@
-name: All-Clean
+name: Auto-Clean
 
 on:
-  workflow_dispatch:
   workflow_call:
-  # schedule:
-  #   - cron: 0 3 * * 1
+
+    #自动清理：每天早上6点
+  schedule:
+    - cron: 0 22 * * *
+  #手动清理
+  workflow_dispatch:
+
+permissions: write-all
 
 jobs:
   Cleaning:
@@ -17,6 +22,11 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         retain_days: 2
         keep_minimum_runs: 0
+        delete_releases: true
+        releases_keep_latest: 0
+        delete_tags: true
+        delete_workflows: true
+        workflows_keep_day: 0
 
     - name: Delete Old Releases
       uses: dev-drprasad/delete-older-releases@master
