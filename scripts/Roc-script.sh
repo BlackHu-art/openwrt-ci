@@ -1,7 +1,7 @@
 # 修改默认IP & 固件名称 & 编译署名
 sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
-sed -i "s/hostname='.*'/hostname='Roc'/g" package/base-files/files/bin/config_generate
-sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ Build by Roc')/g" feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
+sed -i "s/hostname='.*'/hostname='OpenWrt'/g" package/base-files/files/bin/config_generate
+sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ Build by OpenWrt')/g" feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
 
 # 修正使用ccache编译vlmcsd的问题
 mkdir -p feeds/packages/net/vlmcsd/patches
