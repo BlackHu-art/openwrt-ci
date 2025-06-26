@@ -1,4 +1,4 @@
-name: Arthur&Athena-ImmortalWrt
+name: Arthur-ImmortalWrt
 
 #自动编译：当Auto-Clean运行完成后
 on:
@@ -17,7 +17,7 @@ permissions: write-all
 env:
   REPO_URL: https://github.com/laipeng668/immortalwrt.git
   REPO_BRANCH: master
-  CONFIG_FILE: configs/Arthur&Athena.config
+  CONFIG_FILE: configs/Arthur.config
   DIY_SCRIPT: scripts/Roc-script.sh
   CLASH_KERNEL: amd64
   MADS: false
@@ -194,7 +194,7 @@ jobs:
           - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
           - ⚽ 固件源码: ${{ env.REPO_URL }}
           - 💝 源码分支: ${{ env.REPO_BRANCH }}
-          - 🌐 默认地址: **192.168.2.1**
+          - 🌐 默认地址: **10.0.0.1**
           - 🔑 默认密码: none
           - 🚀 WiFi名称: **Star**
           - 🔑 WiFi密码: 12345678
