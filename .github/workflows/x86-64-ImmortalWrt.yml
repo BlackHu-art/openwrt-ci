@@ -81,10 +81,10 @@ jobs:
         git clone --depth 1 -b $REPO_BRANCH --single-branch $REPO_URL /mnt/openwrt
         cd /mnt/openwrt
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
-        VERSION_INFO=$(git show -s --date=short --format="作者: %an<br/>时间: %cd<br/>内容: %s<br/>hash: %H")
-        echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
         VERSION_KERNEL=$(grep -oP 'LINUX_KERNEL_HASH-\K[0-9]+\.[0-9]+\.[0-9]+' target/linux/generic/kernel-6.12)
         echo "VERSION_KERNEL=$VERSION_KERNEL" >> $GITHUB_ENV
+      # VERSION_INFO=$(git show -s --date=short --format="作者: %an<br/>时间: %cd<br/>内容: %s<br/>hash: %H")
+      # echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
 
     - name: Generate Variables(生成变量)
       run: |
@@ -169,7 +169,7 @@ jobs:
         tar -zcf x86.64.Packages.tar.gz packages
         rm -rf packages feeds.buildinfo version.buildinfo sha256sums profiles.json
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
-        
+
     - name: Upload Firmware To Artifact(将固件上传到Artifact)
       if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE != 'true'
       uses: actions/upload-artifact@main
