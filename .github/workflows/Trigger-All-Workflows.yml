@@ -6,8 +6,8 @@ on:
     - cron: 0 20 * * 5  # 北京时间星期六凌晨4点，定时触发
 
 jobs:
-    Arthur-Athena-ImmortalWrt:
-      uses: ./.github/workflows/Arthur&Athena-ImmortalWrt.yml
+    Arthur-ImmortalWrt:
+      uses: ./.github/workflows/Arthur-ImmortalWrt.yml
  
     Taiyi-ImmortalWrt:
       uses: ./.github/workflows/Taiyi-ImmortalWrt.yml
@@ -15,5 +15,5 @@ jobs:
     x86-64-ImmortalWrt:
       uses: ./.github/workflows/x86-64-ImmortalWrt.yml
 
-    All-Clean:
-      uses: ./.github/workflows/All-Clean.yml
+    Auto-Clean:
+      uses: ./.github/workflows/Auto-Clean.yml
