@@ -2,10 +2,10 @@ name: IPQ60XX-LibWrt
 
 #自动编译：当Auto-Clean运行完成后
 on:
-  workflow_run:
-    workflows: ["Auto-Clean"]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["Auto-Clean"]
+  #   types:
+  #     - completed
   workflow_dispatch:
   workflow_call:
   # schedule:
