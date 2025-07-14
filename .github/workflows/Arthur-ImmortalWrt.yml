@@ -131,7 +131,7 @@ jobs:
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_SCRIPT
     
-    - name: Deploy Custom Banner(修改原有Banner 直接替换文件)
+    - name: Deploy Custom Banner(修改原有Banner 直接替换文件 直接替换源码最好)
       run: |
         # 确保目标目录存在
         mkdir -p "$OPENWRT_PATH/package/base-files/files/etc"
