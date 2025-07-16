@@ -26,12 +26,13 @@ function git_sparse_clone() {
 }
 
 # Go & AList & AdGuardHome & AriaNg & WolPlus & Lucky & OpenAppFilter & 集客无线AC控制器 & 雅典娜LED控制
+git clone --depth=1 main https://github.com/fw876/helloworld package/luci-app-ssr-plus
+
 git clone --depth=1 https://github.com/sbwml/luci-app-openlist package/openlist
 git clone --depth=1 https://github.com/sirpdboy/luci-app-netspeedtest package/netspeedtest
 git clone --depth=1 https://github.com/sirpdboy/luci-app-partexp.git package/luci-app-partexp
 git_sparse_clone master https://github.com/kenzok8/openwrt-packages adguardhome luci-app-adguardhome
 git_sparse_clone main https://github.com/VIKINGYFY/packages luci-app-wolplus
-git_sparse_clone main https://github.com/Lienol/openwrt-package luci-app-filebrowser
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky package/luci-app-lucky
 git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
 git clone --depth=1 https://github.com/lwb1978/openwrt-gecoosac package/openwrt-gecoosac
