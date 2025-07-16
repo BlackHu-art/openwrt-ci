@@ -9,6 +9,7 @@ cp -f $GITHUB_WORKSPACE/patches/fix_vlmcsd_compile_with_ccache.patch feeds/packa
 
 # 移除要替换的包
 rm -rf feeds/packages/net/open-app-filter
+rm -rf feeds/luci/applications/luci-app-appfilter
 rm -rf feeds/packages/net/adguardhome
 rm -rf feeds/packages/net/openlist
 rm -rf feeds/luci/applications/luci-app-openlist
