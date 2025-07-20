@@ -32,6 +32,9 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: Delay Startup by 3 Minutes(延迟启动3分钟)
+      run: sleep 180s
+      
     - name: Check Server Performance(检查服务器性能)
       run: |
         echo "警告⚠"
