@@ -21,7 +21,6 @@ env:
   GENERAL_CONFIG_FILE: configs/General.config
   DIY_SCRIPT: scripts/Roc-script.sh
   CLASH_KERNEL: amd64
-  MADS: false
   UPLOAD_BIN_DIR: false
   FIRMWARE_RELEASE: true
   FIRMWARE_TAG: Arthur&Taiyi
@@ -48,19 +47,6 @@ jobs:
         echo -e "$(sudo lshw -short -C memory | grep GiB) \n"
         echo "--------------------------硬盘信息--------------------------"
         echo "硬盘数量：$(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
-
-    - name: Maximize Available Disk Space(最大化可用磁盘空间​)
-      if: env.MADS == 'true'
-      uses: AdityaGarg8/remove-unwanted-software@master
-      with:
-        remove-dotnet: "true"
-        remove-android: "true"
-        remove-haskell: "true"
-        remove-codeql: "true"
-        remove-docker-images: "true"
-        remove-large-packages: "true"
-        remove-cached-tools: "true"
-        remove-swapfile: "true"
 
     - name: Initialization Environment(初始化环境)
       env:
@@ -131,6 +117,9 @@ jobs:
         cat $CONFIG_FILE $GENERAL_CONFIG_FILE > $OPENWRT_PATH/.config
         chmod +x $DIY_SCRIPT
         cd $OPENWRT_PATH
+        # 修改配置文件
+        sed -i '/CONFIG_PACKAGE_luci-app-wifischedule=y/d' .config
+        # 运行自定义脚本
         $GITHUB_WORKSPACE/$DIY_SCRIPT
 
     - name: Deploy Custom Banner(修改原有Banner 直接替换文件 直接替换源码最好)
