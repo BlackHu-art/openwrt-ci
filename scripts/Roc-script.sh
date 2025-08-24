@@ -26,6 +26,7 @@ rm -rf feeds/packages/net/open-app-filter
 rm -rf feeds/luci/applications/luci-app-appfilter
 rm -rf feeds/packages/net/adguardhome
 rm -rf feeds/packages/net/speedtest-cli
+rm -rf feeds/packages/lang/golang
 
 
 # Git稀疏克隆，只克隆指定目录到本地
