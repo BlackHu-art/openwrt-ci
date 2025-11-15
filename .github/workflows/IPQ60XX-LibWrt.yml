@@ -178,7 +178,7 @@ jobs:
           ### 📒 固件信息
           - 这是开启全功能NSS的6.12内核固件，默认主题为Argon；该固件在ImmortalWrt的基础上，添加了额外的软件包cpufreq、ttyd、upnp、wol、samba4、autoreboot、uhttpd、wifischedule、diskman、hd-idle、banip、acme、arpbind、usb-printer、homeproxy、adguardhome、oaf、sqm、wireguard、watchcat、3cat，并添加了若干工具，具体详见IPQ60XX.config。
           - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
-          - 🌐 默认地址: **192.168.2.1**
+          - 🌐 默认地址: **10.0.0.1**
           - 🔑 默认密码: none
           - 🚀 WiFi名称: **LibWrt**
           - 🔑 WiFi密码: 12345678

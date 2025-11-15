@@ -181,7 +181,7 @@ jobs:
           ### 📒 固件信息
           - 这是基于ImmortalWrt主线制作的个人定制固件，默认主题为Argon；该固件在ImmortalWrt的基础上，添加了额外的软件包cpufreq、watchcat、ttyd、upnp、wol、samba4、vlmcsd、aria2、autoreboot、uhttpd、diskman、hd-idle、banip、homeproxy、adguardhome、filebrowser、dockerman、statistics并添加了若干工具，具体详见x86-64.config。
           - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
-          - 🌐 默认地址: **192.168.2.1**
+          - 🌐 默认地址: **10.0.0.1**
           - 🔑 默认密码: none
           ### 🧊 固件版本
           - 固件内核版本：**${{ env.VERSION_KERNEL }}**
