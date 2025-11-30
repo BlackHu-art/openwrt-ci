@@ -3,6 +3,8 @@ sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
 sed -i "s/hostname='.*'/hostname='OpenWrt'/g" package/base-files/files/bin/config_generate
 sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ Build by OpenWrt')/g" feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
 
+# 移除luci-app-attendedsysupgrade软件包
+sed -i "/attendedsysupgrade/d" $(find ./feeds/luci/collections/ -type f -name "Makefile")
 
 # 调整NSS驱动q6_region内存区域预留大小（ipq6018.dtsi默认预留85MB，ipq6018-512m.dtsi默认预留55MB，带WiFi必须至少预留54MB，以下分别是改成预留16MB、32MB、64MB和96MB）
 # sed -i 's/reg = <0x0 0x4ab00000 0x0 0x[0-9a-f]\+>/reg = <0x0 0x4ab00000 0x0 0x01000000>/' target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-512m.dtsi
@@ -16,6 +18,12 @@ rm -rf feeds/luci/applications/luci-app-appfilter
 rm -rf feeds/packages/net/adguardhome
 rm -rf feeds/packages/net/speedtest-cli
 rm -rf feeds/packages/lang/golang
+rm -rf feeds/luci/applications/luci-app-wechatpush
+rm -rf feeds/luci/applications/luci-app-frpc
+rm -rf feeds/luci/applications/luci-app-frps
+rm -rf feeds/luci/themes/luci-theme-argon
+rm -rf feeds/packages/net/ariang
+rm -rf feeds/packages/net/frp
 
 
 # Git稀疏克隆，只克隆指定目录到本地
@@ -35,6 +43,9 @@ git clone --depth=1 https://github.com/sirpdboy/luci-app-netspeedtest package/ne
 git clone --depth=1 https://github.com/sirpdboy/luci-app-partexp.git package/luci-app-partexp
 git clone --depth=1 https://github.com/esirplayground/luci-app-poweroff package/luci-app-poweroff
 git_sparse_clone master https://github.com/kenzok8/openwrt-packages adguardhome luci-app-adguardhome
+git_sparse_clone main https://github.com/VIKINGYFY/packages luci-app-wolplus
+git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon feeds/luci/themes/luci-theme-argon
+git clone --depth=1 https://github.com/eamonxg/luci-theme-aurora feeds/luci/themes/luci-theme-aurora
 git_sparse_clone main https://github.com/VIKINGYFY/packages luci-app-wolplus
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky package/luci-app-lucky
 git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
