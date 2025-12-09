@@ -8,10 +8,10 @@ sed -i "s#_('Firmware Version'), (L\.isObject(boardinfo\.release) ? boardinfo\.r
                 ? boardinfo.release.description + ' / '\n \
                 : '') + (luciversion || '') + ' / ',\n \
             E('a', {\n \
-                href: 'https://github.com/laipeng668/openwrt-ci-roc/releases',\n \
+                href: 'https://github.com/BlackHu-art/openwrt-ci/releases',\n \
                 target: '_blank',\n \
                 rel: 'noopener noreferrer'\n \
-                }, [ 'Built by Roc $(date "+%Y-%m-%d %H:%M:%S")' ])\n \
+                }, [ 'Built by Frankie $(date "+%Y-%m-%d %H:%M:%S")' ])\n \
             ]),#" feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
 
 # 移除luci-app-attendedsysupgrade软件包
