@@ -29,7 +29,7 @@ jobs:
         workflows_keep_day: 0
 
     - name: Delete Old Releases
-      uses: dev-drprasad/delete-older-releases@master
+      uses: dev-drprasad/delete-older-releases@main
       with:
         keep_latest: 8
         delete_tags: true
