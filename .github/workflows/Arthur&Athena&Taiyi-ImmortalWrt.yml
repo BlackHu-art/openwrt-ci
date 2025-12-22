@@ -16,7 +16,7 @@ permissions: write-all
 
 env:
   REPO_URL: https://github.com/laipeng668/immortalwrt.git
-  REPO_BRANCH: master
+  REPO_BRANCH: openwrt-25.12
   CONFIG_FILE: "configs/Arthur&Athena&Taiyi.config"
   GENERAL_CONFIG_FILE: "configs/General.config"
   DIY_SCRIPT: scripts/Roc-script.sh
