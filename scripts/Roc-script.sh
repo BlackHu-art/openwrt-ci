@@ -48,11 +48,14 @@ function git_sparse_clone() {
   cd .. && rm -rf $repodir
 }
 
-# Go & AList & AdGuardHome & AriaNg & WolPlus & Lucky & OpenAppFilter & 集客无线AC控制器 & 雅典娜LED控制
-
+# 自定义添加iStore netspeedtest partexp poweroff
+git_sparse_clone main https://github.com/linkease/istore-ui app-store-ui
+git_sparse_clone main https://github.com/linkease/istore luci
 git clone --depth=1 https://github.com/sirpdboy/luci-app-netspeedtest package/netspeedtest
 git clone --depth=1 https://github.com/sirpdboy/luci-app-partexp.git package/luci-app-partexp
 git clone --depth=1 https://github.com/esirplayground/luci-app-poweroff package/luci-app-poweroff
+
+# Go & AList & AdGuardHome & AriaNg & WolPlus & Lucky & OpenAppFilter & 集客无线AC控制器 & 雅典娜LED控制
 
 # git_sparse_clone ariang https://github.com/laipeng668/packages net/ariang
 # git_sparse_clone frp https://github.com/laipeng668/packages net/frp
@@ -67,7 +70,7 @@ git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config feeds/luc
 git clone --depth=1 https://github.com/eamonxg/luci-theme-aurora feeds/luci/themes/luci-theme-aurora
 git clone --depth=1 https://github.com/eamonxg/luci-app-aurora-config feeds/luci/applications/luci-app-aurora-config
 git clone --depth=1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
-git clone --depth=1 https://github.com/sbwml/luci-app-openlist2 package/openlist2
+# git clone --depth=1 https://github.com/sbwml/luci-app-openlist2 package/openlist2
 # git clone --depth=1 https://github.com/gdy666/luci-app-lucky package/luci-app-lucky
 # git clone --depth=1 https://github.com/tty228/luci-app-wechatpush package/luci-app-wechatpush
 git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
@@ -88,10 +91,6 @@ rm -rf feeds/luci/applications/luci-app-openclash
 git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall package/luci-app-passwall
 git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwall2
 git clone --depth=1 https://github.com/vernesong/OpenClash package/luci-app-openclash
-
-# iStore
-git_sparse_clone main https://github.com/linkease/istore-ui app-store-ui
-git_sparse_clone main https://github.com/linkease/istore luci
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a
