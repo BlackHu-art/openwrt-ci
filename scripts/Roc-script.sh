@@ -56,6 +56,8 @@ git clone --depth=1 https://github.com/esirplayground/luci-app-poweroff package/
 # Go & AList & AdGuardHome & AriaNg & WolPlus & Lucky & OpenAppFilter & 集客无线AC控制器 & 雅典娜LED控制
 
 # git_sparse_clone ariang https://github.com/laipeng668/packages net/ariang
+git_sparse_clone master https://github.com/laipeng668/packages lang/golang
+mv -f package/golang feeds/packages/lang/golang
 # git_sparse_clone frp https://github.com/laipeng668/packages net/frp
 # mv -f package/frp feeds/packages/net/frp
 # git_sparse_clone frp https://github.com/laipeng668/luci applications/luci-app-frpc applications/luci-app-frps
@@ -67,7 +69,6 @@ git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon feeds/luci/the
 git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config feeds/luci/applications/luci-app-argon-config
 git clone --depth=1 https://github.com/eamonxg/luci-theme-aurora feeds/luci/themes/luci-theme-aurora
 git clone --depth=1 https://github.com/eamonxg/luci-app-aurora-config feeds/luci/applications/luci-app-aurora-config
-git clone --depth=1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
 # git clone --depth=1 https://github.com/sbwml/luci-app-openlist2 package/openlist2
 # git clone --depth=1 https://github.com/gdy666/luci-app-lucky package/luci-app-lucky
 # git clone --depth=1 https://github.com/tty228/luci-app-wechatpush package/luci-app-wechatpush

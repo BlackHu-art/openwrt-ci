@@ -1,4 +1,4 @@
-name: Arthur&Athena&Taiyi-ImmortalWrt
+name: JDCloud-ImmortalWrt
 
 #自动编译：当Auto-Clean运行完成后
 on:
@@ -17,13 +17,13 @@ permissions: write-all
 env:
   REPO_URL: https://github.com/laipeng668/immortalwrt.git
   REPO_BRANCH: openwrt-25.12
-  CONFIG_FILE: "configs/Arthur&Athena&Taiyi.config"
-  GENERAL_CONFIG_FILE: "configs/General.config"
+  CONFIG_FILE: configs/JDCloud.NoWiFi.config
+  GENERAL_CONFIG_FILE: configs/General.config
   DIY_SCRIPT: scripts/Roc-script.sh
   CLASH_KERNEL: amd64
   UPLOAD_BIN_DIR: false
   FIRMWARE_RELEASE: true
-  FIRMWARE_TAG: "Arthur&Athena&Taiyi"
+  FIRMWARE_TAG: JDCloud
   TZ: Asia/Shanghai
 
 jobs:
@@ -65,6 +65,8 @@ jobs:
         git clone --depth 1 -b $REPO_BRANCH --single-branch $REPO_URL /mnt/openwrt
         cd /mnt/openwrt
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
+        VERSION_INFO=$(git show -s --date=short --format="作者: %an<br/>时间: %cd<br/>内容: %s<br/>hash: %H")
+        echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
         VERSION_KERNEL=$(grep -oP 'LINUX_KERNEL_HASH-\K[0-9]+\.[0-9]+\.[0-9]+' target/linux/generic/kernel-6.12)
         echo "VERSION_KERNEL=$VERSION_KERNEL" >> $GITHUB_ENV
 
@@ -85,7 +87,7 @@ jobs:
     - name: Cache Toolchain(缓存工具链)
       uses: actions/cache@main
       with:
-        key: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.HASH }}-${{ env.CACHE_DATE }}
+        key: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.HASH }} ${{ env.CACHE_DATE }}
         restore-keys: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-
         path: |
           ${{ env.OPENWRT_PATH }}/.ccache
@@ -159,11 +161,14 @@ jobs:
       if: steps.compile.outputs.status == 'success'
       run: |
         cd $OPENWRT_PATH/bin/targets/*/*
-        cp $OPENWRT_PATH/.config Arthur.Athena.Taiyi.config
-        mv config.buildinfo Arthur.Athena.Taiyi.config.buildinfo
-        mv immortalwrt-qualcommax-ipq60xx.manifest Arthur.Athena.Taiyi.manifest
+        cp $OPENWRT_PATH/.config Arthur.Athena.Taiyi.NoWiFi.config
+        mv config.buildinfo Arthur.Athena.Taiyi.NoWiFi.config.buildinfo
+        mv immortalwrt-qualcommax-ipq60xx.manifest Arthur.Athena.Taiyi.NoWiFi.manifest
         mv -f $OPENWRT_PATH/bin/packages/*/*/*.apk packages
-        tar -zcf Arthur.Athena.Taiyi.Packages.tar.gz packages
+        tar -zcf Arthur.Athena.Taiyi.NoWiFi.Packages.tar.gz packages
+        for file in *qualcommax*.bin; do
+            mv "$file" "${file//qualcommax/nowifi}"
+        done
         rm -rf packages feeds.buildinfo version.buildinfo sha256sums profiles.json
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
 
@@ -186,12 +191,16 @@ jobs:
         body: |
           **This is OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
           ### 📒 固件信息
-          - 这是开启全功能NSS的6.12内核固件，默认主题为Aurora；该固件在ImmortalWrt的基础上，添加了额外的软件包cpufreq、ddns、ttyd、upnp、wolplus、samba4、vlmcsd、aria2、autoreboot、uhttpd、wifischedule、frps、frpc、diskman、hd-idle、banip、acme、arpbind、usb-printer、passwall、openlist、oaf、sqm、wireguard、watchcat、wechatpush、3cat（**Taiyi**额外增加了dockerman、gecoosac、lucky），并添加了若干工具，具体详见Arthur&Athena&Taiyi.config和General.config。          - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
-          - 🌐 默认地址: **10.0.0.1**
+          - 这是开启全功能NSS的6.12内核固件，默认主题为Aurora；该固件在ImmortalWrt的基础上，添加了额外的软件包cpufreq、ddns、ttyd、upnp、wolplus、samba4、vlmcsd、aria2、autoreboot、uhttpd、wifischedule、frps、frpc、diskman、hd-idle、banip、acme、arpbind、usb-printer、passwall、openlist、oaf、sqm、wireguard、watchcat、wechatpush、3cat、smartdns（**Taiyi**额外增加了dockerman、gecoosac、lucky），并添加了若干工具，具体详见JDCloud.config(NoWiFi.config)和General.config。
+          - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
+          - ⚽ 固件源码: ${{ env.REPO_URL }}
+          - 💝 源码分支: ${{ env.REPO_BRANCH }}
+          - 🌐 默认地址: **192.168.2.1**
           - 🔑 默认密码: none
           ### 🧊 固件版本
           - 固件内核版本：**${{ env.VERSION_KERNEL }}**
           - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
+          - ${{ env.VERSION_INFO }}
 
     - name: Delete Old Cache(删除旧缓存)
       run: |
@@ -205,3 +214,10 @@ jobs:
         echo "staging: $(du -sh $OPENWRT_PATH/staging_dir | cut -f 1)"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Delete Old Workflows(删除旧工作流)
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        retain_days: 2
+        keep_minimum_runs: 0
