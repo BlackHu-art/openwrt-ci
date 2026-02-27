@@ -17,7 +17,7 @@ permissions: write-all
 env:
   REPO_URL: https://github.com/laipeng668/immortalwrt.git
   REPO_BRANCH: openwrt-25.12
-  CONFIG_FILE: configs/JDCloud.NoWiFi.config
+  CONFIG_FILE: configs/JDCloud.config
   GENERAL_CONFIG_FILE: configs/General.config
   DIY_SCRIPT: scripts/Roc-script.sh
   CLASH_KERNEL: amd64
@@ -161,14 +161,11 @@ jobs:
       if: steps.compile.outputs.status == 'success'
       run: |
         cd $OPENWRT_PATH/bin/targets/*/*
-        cp $OPENWRT_PATH/.config Arthur.Athena.Taiyi.NoWiFi.config
-        mv config.buildinfo Arthur.Athena.Taiyi.NoWiFi.config.buildinfo
-        mv immortalwrt-qualcommax-ipq60xx.manifest Arthur.Athena.Taiyi.NoWiFi.manifest
+        cp $OPENWRT_PATH/.config Arthur.Athena.config
+        mv config.buildinfo Arthur.Athena.config.buildinfo
+        mv immortalwrt-qualcommax-ipq60xx.manifest Arthur.Athena.manifest
         mv -f $OPENWRT_PATH/bin/packages/*/*/*.apk packages
-        tar -zcf Arthur.Athena.Taiyi.NoWiFi.Packages.tar.gz packages
-        for file in *qualcommax*.bin; do
-            mv "$file" "${file//qualcommax/nowifi}"
-        done
+        tar -zcf Arthur.Athena.Packages.tar.gz packages
         rm -rf packages feeds.buildinfo version.buildinfo sha256sums profiles.json
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
 
