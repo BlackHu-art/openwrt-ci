@@ -32,10 +32,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - name: Maximize Disk Space(最大化磁盘空间)
-      uses: sbwml/actions@free-disk
-      with:
-        build-mount-path: /roc
+
     - name: Check Server Performance(检查服务器性能)
       run: |
         echo "警告⚠"
