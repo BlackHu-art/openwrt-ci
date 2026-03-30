@@ -21,8 +21,6 @@ env:
   GENERAL_CONFIG_FILE: configs/General.config
   DIY_SCRIPT: scripts/Roc-script.sh
   CLASH_KERNEL: amd64
-  UPLOAD_BIN_DIR: false
-  FIRMWARE_RELEASE: true
   FIRMWARE_TAG: x86-64
   TZ: Asia/Shanghai
 
@@ -62,9 +60,9 @@ jobs:
     - name: Clone Source Code(克隆源代码)
       run: |
         df -hT $GITHUB_WORKSPACE
-        sudo chown -R $(id -u):$(id -g) /roc
-        git clone --depth 1 -b $REPO_BRANCH --single-branch $REPO_URL /roc
-        cd /roc
+        sudo chown -R $(id -u):$(id -g) /mnt/openwrt
+        git clone --depth 1 -b $REPO_BRANCH --single-branch $REPO_URL /mnt/openwrt
+        cd /mnt/openwrt
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
         VERSION_KERNEL=$(grep -oP 'LINUX_KERNEL_HASH-\K[0-9]+\.[0-9]+\.[0-9]+' target/linux/generic/kernel-6.12)
         echo "VERSION_KERNEL=$VERSION_KERNEL" >> $GITHUB_ENV
@@ -138,13 +136,6 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
-    - name: Upload Bin Directory(上传固件)
-      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
-      uses: actions/upload-artifact@main
-      with:
-        name: ${{ env.SOURCE_REPO }}-bin-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.FILE_DATE }}
-        path: ${{ env.OPENWRT_PATH }}/bin
-
     - name: Organize Files(整理文件)
       if: steps.compile.outputs.status == 'success'
       run: |
@@ -157,15 +148,8 @@ jobs:
         rm -rf packages feeds.buildinfo version.buildinfo sha256sums profiles.json
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
 
-    - name: Upload Firmware To Artifact(将固件上传到Artifact)
-      if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE != 'true'
-      uses: actions/upload-artifact@main
-      with:
-        name: ${{ env.SOURCE_REPO }}-firmware-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE_PATH }}
-
     - name: Upload Firmware To Release(发布固件)
-      if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
+      if: steps.compile.outputs.status == 'success'
       uses: ncipollo/release-action@main
       with:
         name: ${{ env.DATE }} for ${{ env.FIRMWARE_TAG }}
