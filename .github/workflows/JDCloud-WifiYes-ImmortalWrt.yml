@@ -160,7 +160,6 @@ jobs:
         rm -rf packages feeds.buildinfo version.buildinfo sha256sums profiles.json
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
 
-    - name: Upload Firmware To Release(发布固件)
     - name: Prepare Release Body
       if: success()
       run: |
