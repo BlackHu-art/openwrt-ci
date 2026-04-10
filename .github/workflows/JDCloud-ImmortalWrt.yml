@@ -1,4 +1,4 @@
-name: JDCloud-WifiYes-ImmortalWrt
+name: JDCloud-ImmortalWrt
 
 #自动编译：当Auto-Clean运行完成后
 on:
