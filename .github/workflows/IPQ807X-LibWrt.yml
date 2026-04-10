@@ -168,13 +168,12 @@ jobs:
         
         # 生成发布说明
         cat > release_body.txt <<EOF
-        🚀 LibWrt Cloud Build
-        💻 Platform: ${{ env.FIRMWARE_TAG }}
-        🔧 Kernel Version: ${{ env.VERSION_KERNEL }}
-        🌐 LAN IP: 10.0.0.1
-        🔑 Default Password: none
-        🚀 WiFi Name: LibWrt
-        📶 WiFi Password: 12345678
+        **This is 🚀 LibWrt Cloud Build OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
+          - 🔧 Kernel Version: ${{ env.VERSION_KERNEL }}
+          - 🌐 LAN IP: 10.0.0.1
+          - 🔑 Default Password: none
+          - 🚀 WiFi Name: LibWrt
+          - 📶 WiFi Password: 12345678
 
         🧩 Installed Plugins:
         \`\`\`
@@ -184,12 +183,14 @@ jobs:
 
     - name: Upload Firmware To Release(发布固件)
       if: steps.compile.outputs.status == 'success'
-      uses: softprops/action-gh-release@v2.5.0
+      uses: ncipollo/release-action@main
       with:
-        tag_name: ${{ env.FIRMWARE_TAG }}
+        allowUpdates: true
+        name: ${{ env.DATE }} for ${{ env.FIRMWARE_TAG }}
+        tag: ${{ env.FIRMWARE_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
-        files: ${{ env.FIRMWARE_PATH }}/*
-        body_path: ./release_body.txt
+        artifacts: ${{ env.FIRMWARE_PATH }}/*
+        body: ./release_body.txt
 
     - name: Delete Old Cache(删除旧缓存)
       run: |
