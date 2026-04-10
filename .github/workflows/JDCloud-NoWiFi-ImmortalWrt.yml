@@ -161,24 +161,42 @@ jobs:
         rm -rf packages feeds.buildinfo version.buildinfo sha256sums profiles.json
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
 
+    - name: Prepare Release Body
+      if: success()
+      run: |
+        # 创建固件目录的软链接以便于访问
+        ln -sf ${{ env.FIRMWARE_PATH }} firmware
+        
+        # 从 manifest 文件中提取 luci-app 类型的插件
+        PLUGINS=$(grep -h -oP "luci-app(-[a-zA-Z0-9]{1,}){1,}" ./firmware/*.manifest 2>/dev/null \
+          | sort -u \
+          | paste - - - \
+          | awk '{printf "%-28s %-28s %-28s\n",$1,$2,$3}')
+        
+        # 生成发布说明
+        cat > release_body.txt <<EOF
+        🚀 LibWrt Cloud Build
+        💻 Platform: ${{ env.FIRMWARE_TAG }}
+        🔧 Kernel Version: ${{ env.VERSION_KERNEL }}
+        🌐 LAN IP: 10.0.0.1
+        🔑 Default Password: none
+        🚀 WiFi Name: LibWrt
+        📶 WiFi Password: 12345678
+
+        🧩 Installed Plugins:
+        \`\`\`
+        $PLUGINS
+        \`\`\`
+        EOF
+
     - name: Upload Firmware To Release(发布固件)
       if: steps.compile.outputs.status == 'success'
-      uses: ncipollo/release-action@main
+      uses: softprops/action-gh-release@v2.5.0
       with:
-        name: ${{ env.DATE }} for ${{ env.FIRMWARE_TAG }}
-        allowUpdates: true
-        tag: ${{ env.FIRMWARE_TAG }}
+        tag_name: ${{ env.FIRMWARE_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
-        artifacts: ${{ env.FIRMWARE_PATH }}/*
-        body: |
-          **This is OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
-          ### 📒 固件信息
-          - 这是开启全功能NSS的6.12内核固件，默认主题为Aurora；该固件在ImmortalWrt的基础上，添加了额外的软件包cpufreq、ddns、ttyd、upnp、wolplus、samba4、vlmcsd、aria2、autoreboot、uhttpd、wifischedule、frps、frpc、diskman、hd-idle、banip、acme、arpbind、usb-printer、passwall、openlist、oaf、sqm、wireguard、watchcat、wechatpush、3cat（**Taiyi**额外增加了dockerman、gecoosac、lucky），并添加了若干工具，具体详见Arthur&Athena&Taiyi.config和General.config。          - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
-          - 🌐 默认地址: **10.0.0.1**
-          - 🔑 默认密码: none
-          ### 🧊 固件版本
-          - 固件内核版本：**${{ env.VERSION_KERNEL }}**
-          - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
+        files: ${{ env.FIRMWARE_PATH }}/*
+        body_path: ./release_body.txt
 
     - name: Delete Old Cache(删除旧缓存)
       run: |
