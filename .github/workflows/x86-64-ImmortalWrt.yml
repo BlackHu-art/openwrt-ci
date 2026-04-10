@@ -185,7 +185,7 @@ jobs:
         tag: ${{ env.FIRMWARE_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: ${{ env.FIRMWARE_PATH }}/*
-        body: ./release_body.txt
+        bodyFile: ./release_body.txt
 
     - name: Delete Old Cache(删除旧缓存)
       run: |
