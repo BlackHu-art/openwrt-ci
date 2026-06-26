@@ -39,6 +39,10 @@ on:
         required: false
         type: boolean
         default: false
+      package_extension:
+        required: false
+        type: string
+        default: apk
 
 permissions:
   contents: write
@@ -205,19 +209,27 @@ jobs:
       env:
         ARTIFACT_PREFIX: ${{ inputs.artifact_prefix }}
         MANIFEST_FILE: ${{ inputs.manifest_file }}
+        PACKAGE_EXTENSION: ${{ inputs.package_extension }}
       run: |
         cd "$OPENWRT_PATH"/bin/targets/*/*
         cp "$OPENWRT_PATH/.config" "$ARTIFACT_PREFIX.config"
         mv config.buildinfo "$ARTIFACT_PREFIX.config.buildinfo"
         mv "$MANIFEST_FILE" "$ARTIFACT_PREFIX.manifest"
+        case "$PACKAGE_EXTENSION" in
+          apk | ipk) ;;
+          *)
+            echo "Error: unsupported package extension: $PACKAGE_EXTENSION (expected apk or ipk)" >&2
+            exit 1
+            ;;
+        esac
         mkdir -p packages
         package_count=0
         while IFS= read -r -d '' package_file; do
           mv -f "$package_file" packages/
           package_count=$((package_count + 1))
-        done < <(find "$OPENWRT_PATH/bin/packages" -type f \( -name '*.apk' -o -name '*.ipk' \) -print0)
+        done < <(find "$OPENWRT_PATH/bin/packages" -type f -name "*.$PACKAGE_EXTENSION" -print0)
         if [ "$package_count" -eq 0 ]; then
-          echo "Error: no .apk or .ipk package files found under $OPENWRT_PATH/bin/packages" >&2
+          echo "Error: no .$PACKAGE_EXTENSION package files found under $OPENWRT_PATH/bin/packages" >&2
           exit 1
         fi
         tar -zcf "$ARTIFACT_PREFIX.Packages.tar.gz" packages
