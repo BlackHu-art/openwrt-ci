@@ -20,6 +20,7 @@ RUNNER_TEMP="${RUNNER_TEMP:-/tmp}"
 SDK_ROOT="${SDK_ROOT:-$RUNNER_TEMP/openwrt-sdk}"
 OUTPUT_DIR="${OUTPUT_DIR:-${GITHUB_WORKSPACE:-$PWD}/artifacts/packages}"
 PACKAGE_ARCH_NAME="${PACKAGE_ARCH_NAME:-$OPENWRT_TARGET-$OPENWRT_SUBTARGET}"
+PACKAGE_SELECTED_ARCH="${PACKAGE_SELECTED_ARCH:-$PACKAGE_ARCH_NAME}"
 PACKAGE_SELECTION="${PACKAGE_SELECTION:-${PACKAGE_NAME:-all}}"
 SDK_ARCHIVE="$RUNNER_TEMP/openwrt-sdk.tarball"
 SPARSE_ROOT="$RUNNER_TEMP/openwrt-sparse-clone"
@@ -46,23 +47,35 @@ normalize_package_selection() {
     "" | all | "全部")
       printf 'all\n'
       ;;
-    aria2 | ariang | frp | nginx | gecoosac | openlist2 | luci-app-aria2 | luci-app-frpc | luci-app-frps | luci-app-gecoosac | luci-app-openlist2 | luci-theme-aurora)
+    frp | nginx | luci-app-aria2 | luci-app-frpc | luci-app-frps | luci-app-gecoosac | luci-app-openlist2 | luci-theme-aurora)
       printf '%s\n' "$selection"
       ;;
-    frpc | frps | frp-binary-toml | frp-toml)
+    aria2 | ariang)
+      printf 'luci-app-aria2\n'
+      ;;
+    frpc)
+      printf 'luci-app-frpc\n'
+      ;;
+    frps)
+      printf 'luci-app-frps\n'
+      ;;
+    frp-binary-toml | frp-toml)
       printf 'frp\n'
       ;;
     nginx-full | nginx-ssl)
       printf 'nginx\n'
       ;;
-    openlist)
-      printf 'openlist2\n'
+    gecoosac)
+      printf 'luci-app-gecoosac\n'
+      ;;
+    openlist | openlist2)
+      printf 'luci-app-openlist2\n'
       ;;
     luci-app-openlist)
       printf 'luci-app-openlist2\n'
       ;;
     *)
-      die "Unsupported PACKAGE_SELECTION: ${1:-} (supported: all, aria2, ariang, frp, nginx, gecoosac, openlist2, luci-app-aria2, luci-app-frpc, luci-app-frps, luci-app-gecoosac, luci-app-openlist2, luci-theme-aurora)"
+      die "Unsupported PACKAGE_SELECTION: ${1:-} (supported: all, nginx, luci-app-aria2, luci-app-frpc, luci-app-frps, luci-app-gecoosac, luci-app-openlist2, luci-theme-aurora; legacy aliases: aria2, ariang, frp, gecoosac, openlist2)"
       ;;
   esac
 }
@@ -429,15 +442,14 @@ add_luci_i18n_packages() {
 generate_artifact_filters() {
   ARTIFACT_PACKAGE_NAMES=()
 
-  if { selection_in aria2 && config_package_enabled aria2; } ||
-    { selection_in luci-app-aria2 && {
-      config_package_enabled aria2 ||
-        config_package_enabled luci-app-aria2
-    }; }; then
+  if selection_in luci-app-aria2 && {
+    config_package_enabled aria2 ||
+      config_package_enabled luci-app-aria2
+  }; then
     add_artifact_package aria2
   fi
 
-  if selection_in ariang && config_package_enabled ariang; then
+  if selection_in luci-app-aria2 && config_package_enabled ariang; then
     add_artifact_package ariang
   fi
 
@@ -462,12 +474,12 @@ generate_artifact_filters() {
     add_artifact_package frps
   fi
 
-  if selection_in luci-app-frpc && config_package_enabled luci-app-frpc; then
+  if selection_in frp luci-app-frpc && config_package_enabled luci-app-frpc; then
     add_artifact_package luci-app-frpc
     add_luci_i18n_packages frpc
   fi
 
-  if selection_in luci-app-frps && config_package_enabled luci-app-frps; then
+  if selection_in frp luci-app-frps && config_package_enabled luci-app-frps; then
     add_artifact_package luci-app-frps
     add_luci_i18n_packages frps
   fi
@@ -476,15 +488,14 @@ generate_artifact_filters() {
   selection_in nginx && config_package_enabled nginx-full && add_artifact_package nginx-full
   selection_in nginx && config_package_enabled nginx-ssl && add_artifact_package nginx-ssl
 
-  if { selection_in openlist2 && config_package_enabled openlist2; } ||
-    { selection_in luci-app-openlist2 && {
-      config_package_enabled openlist2 ||
-        config_package_enabled luci-app-openlist2
-    }; }; then
+  if selection_in luci-app-openlist2 && {
+    config_package_enabled openlist2 ||
+      config_package_enabled luci-app-openlist2
+  }; then
     add_artifact_package openlist2
   fi
 
-  if selection_in gecoosac luci-app-gecoosac && {
+  if selection_in luci-app-gecoosac && {
     config_package_enabled gecoosac ||
       config_package_enabled luci-app-gecoosac
   }; then
@@ -517,18 +528,90 @@ artifact_package_allowed() {
   local package_name
 
   for package_name in "${ARTIFACT_PACKAGE_NAMES[@]}"; do
-    case "$package_file_name" in
-      "${package_name}_"* | "${package_name}-"[0-9]* | "${package_name}-git"* | "${package_name}-v"[0-9]*)
-        return 0
-        ;;
-    esac
+    package_file_matches_name "$package_file_name" "$package_name" && return 0
   done
+
+  return 1
+}
+
+package_file_matches_name() {
+  local package_file_name="$1"
+  local package_name="$2"
+
+  case "$package_file_name" in
+    "${package_name}_"* | "${package_name}-"[0-9]* | "${package_name}-git"* | "${package_name}-v"[0-9]*)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+artifact_package_group() {
+  local package_file_name="$1"
+
+  if package_file_matches_name "$package_file_name" aria2 ||
+    package_file_matches_name "$package_file_name" ariang ||
+    package_file_matches_name "$package_file_name" luci-app-aria2 ||
+    package_file_matches_name "$package_file_name" luci-i18n-aria2-zh-cn ||
+    package_file_matches_name "$package_file_name" luci-i18n-aria2-zh-tw; then
+    printf 'luci-app-aria2\n'
+    return 0
+  fi
+
+  if package_file_matches_name "$package_file_name" frpc ||
+    package_file_matches_name "$package_file_name" luci-app-frpc ||
+    package_file_matches_name "$package_file_name" luci-i18n-frpc-zh-cn ||
+    package_file_matches_name "$package_file_name" luci-i18n-frpc-zh-tw; then
+    printf 'luci-app-frpc\n'
+    return 0
+  fi
+
+  if package_file_matches_name "$package_file_name" frps ||
+    package_file_matches_name "$package_file_name" luci-app-frps ||
+    package_file_matches_name "$package_file_name" luci-i18n-frps-zh-cn ||
+    package_file_matches_name "$package_file_name" luci-i18n-frps-zh-tw; then
+    printf 'luci-app-frps\n'
+    return 0
+  fi
+
+  if package_file_matches_name "$package_file_name" gecoosac ||
+    package_file_matches_name "$package_file_name" luci-app-gecoosac ||
+    package_file_matches_name "$package_file_name" luci-i18n-gecoosac-zh-cn ||
+    package_file_matches_name "$package_file_name" luci-i18n-gecoosac-zh-tw; then
+    printf 'luci-app-gecoosac\n'
+    return 0
+  fi
+
+  if package_file_matches_name "$package_file_name" openlist2 ||
+    package_file_matches_name "$package_file_name" luci-app-openlist2 ||
+    package_file_matches_name "$package_file_name" luci-i18n-openlist2-zh-cn ||
+    package_file_matches_name "$package_file_name" luci-i18n-openlist2-zh-tw; then
+    printf 'luci-app-openlist2\n'
+    return 0
+  fi
+
+  if package_file_matches_name "$package_file_name" luci-theme-aurora ||
+    package_file_matches_name "$package_file_name" luci-app-aurora-config ||
+    package_file_matches_name "$package_file_name" luci-i18n-aurora-config-zh-cn ||
+    package_file_matches_name "$package_file_name" luci-i18n-aurora-config-zh-tw; then
+    printf 'luci-theme-aurora\n'
+    return 0
+  fi
+
+  if package_file_matches_name "$package_file_name" nginx ||
+    package_file_matches_name "$package_file_name" nginx-full ||
+    package_file_matches_name "$package_file_name" nginx-ssl; then
+    printf 'nginx\n'
+    return 0
+  fi
 
   return 1
 }
 
 release_package_name() {
   local package_file="$1"
+  local group_name="$2"
   local package_arch
   local package_release_name
   local package_file_name
@@ -537,20 +620,27 @@ release_package_name() {
 
   package_file_name="$(basename "$package_file")"
   safe_package_name="${package_file_name//\~/-}"
+  package_arch="$(release_package_arch_suffix "$group_name")"
   sdk_prefix="$(normalize_sdk_version "$OPENWRT_SDK_VERSION")-"
 
   case "$safe_package_name" in
-    *.ipk)
-      package_release_name="$safe_package_name"
-      ;;
     *.apk)
-      package_arch="$(basename "$(dirname "$(dirname "$package_file")")")"
+      package_release_name="${safe_package_name%.apk}-$package_arch.apk"
+      ;;
+    *_all.ipk)
+      package_release_name="${safe_package_name%_all.ipk}_$package_arch.ipk"
+      ;;
+    *.ipk)
+      local package_path_arch
+      package_path_arch="$(basename "$(dirname "$(dirname "$package_file")")")"
       case "$safe_package_name" in
-        ariang*.apk | luci*.apk)
-          package_arch=all
+        *_"$package_path_arch".ipk)
+          package_release_name="${safe_package_name%_$package_path_arch.ipk}_$package_arch.ipk"
+          ;;
+        *)
+          package_release_name="${safe_package_name%.ipk}_$package_arch.ipk"
           ;;
       esac
-      package_release_name="${safe_package_name%.apk}-$package_arch.apk"
       ;;
     *)
       package_release_name="$safe_package_name"
@@ -567,20 +657,51 @@ release_package_name() {
   esac
 }
 
+release_package_arch_suffix() {
+  local group_name="$1"
+
+  if [ "$group_name" = luci-theme-aurora ]; then
+    printf 'all\n'
+    return
+  fi
+
+  printf '%s\n' "${PACKAGE_ARCH_NAME//\//-}"
+}
+
+artifact_zip_name() {
+  local group_name="$1"
+  local safe_arch_name="${PACKAGE_ARCH_NAME//\//-}"
+  local sdk_prefix
+
+  sdk_prefix="$(normalize_sdk_version "$OPENWRT_SDK_VERSION")"
+
+  if [ "$group_name" = luci-theme-aurora ]; then
+    printf '%s-%s-all.zip\n' "$sdk_prefix" "$group_name"
+    return
+  fi
+
+  printf '%s-%s-%s.zip\n' "$sdk_prefix" "$group_name" "$safe_arch_name"
+}
+
+artifact_group_should_be_skipped() {
+  local group_name="$1"
+
+  [ "$group_name" = luci-theme-aurora ] || return 1
+  [ "$PACKAGE_SELECTED_ARCH" = ALL ] || return 1
+  [ "$PACKAGE_ARCH_NAME" != x86-64 ]
+}
+
 generate_compile_targets() {
   COMPILE_TARGETS=()
 
-  if { selection_in aria2 ariang && {
-    config_package_enabled aria2 ||
-      config_package_enabled ariang
-  }; } || { selection_in luci-app-aria2 && {
+  if selection_in luci-app-aria2 && {
     config_package_enabled aria2 ||
       config_package_enabled luci-app-aria2
-  }; }; then
+  }; then
     add_compile_target package/feeds/packages/aria2/compile
   fi
 
-  if selection_in ariang && {
+  if selection_in luci-app-aria2 && {
     config_package_enabled ariang ||
       config_package_enabled ariang-nginx
   }; then
@@ -608,19 +729,18 @@ generate_compile_targets() {
     add_compile_target package/feeds/packages/nginx/compile
   fi
 
-  if { selection_in openlist2 && config_package_enabled openlist2; } ||
-    { selection_in luci-app-openlist2 && {
-      config_package_enabled openlist2 ||
-        config_package_enabled luci-app-openlist2
-    }; }; then
+  if selection_in luci-app-openlist2 && {
+    config_package_enabled openlist2 ||
+      config_package_enabled luci-app-openlist2
+  }; then
     add_compile_target package/openlist2/openlist2/compile
   fi
 
-  if selection_in luci-app-frpc && config_package_enabled luci-app-frpc; then
+  if selection_in frp luci-app-frpc && config_package_enabled luci-app-frpc; then
     add_compile_target package/feeds/luci/luci-app-frpc/compile
   fi
 
-  if selection_in luci-app-frps && config_package_enabled luci-app-frps; then
+  if selection_in frp luci-app-frps && config_package_enabled luci-app-frps; then
     add_compile_target package/feeds/luci/luci-app-frps/compile
   fi
 
@@ -628,7 +748,7 @@ generate_compile_targets() {
     add_compile_target package/feeds/luci/luci-app-aria2/compile
   fi
 
-  if selection_in gecoosac luci-app-gecoosac && {
+  if selection_in luci-app-gecoosac && {
     config_package_enabled gecoosac ||
       config_package_enabled luci-app-gecoosac
   }; then
@@ -643,7 +763,7 @@ generate_compile_targets() {
     add_compile_target package/openlist2/luci-app-openlist2/compile
   fi
 
-  if selection_in luci-theme-aurora; then
+  if selection_in luci-theme-aurora && ! artifact_group_should_be_skipped luci-theme-aurora; then
     config_package_enabled luci-theme-aurora && add_compile_target package/luci-theme-aurora/compile
     config_package_enabled luci-app-aurora-config && add_compile_target package/luci-app-aurora-config/compile
   fi
@@ -654,10 +774,18 @@ generate_compile_targets() {
 copy_artifacts() {
   local package_bin_dir="$SDK_ROOT/bin/packages"
   local copied_count=0
+  local group_dir
+  local group_name
+  local groups=()
+  local -A group_counts=()
   local package_file
-  local package_name
+  local package_file_name
+  local release_name
   local skipped_count=0
+  local staging_dir="$RUNNER_TEMP/package-artifact-groups"
   local target_file
+  local zip_count=0
+  local zip_file
 
   if [ ! -d "$package_bin_dir" ]; then
     die "SDK package output directory was not created: $package_bin_dir"
@@ -667,23 +795,57 @@ copy_artifacts() {
     die "No compiled .ipk or .apk files were found under $package_bin_dir"
   fi
 
-  rm -rf "$OUTPUT_DIR"
-  mkdir -p "$OUTPUT_DIR"
+  command -v zip >/dev/null 2>&1 || die "zip command was not found"
+
+  rm -rf "$OUTPUT_DIR" "$staging_dir"
+  mkdir -p "$OUTPUT_DIR" "$staging_dir"
   while IFS= read -r -d '' package_file; do
-    package_name="$(basename "$package_file")"
-    if ! artifact_package_allowed "$package_name"; then
+    package_file_name="$(basename "$package_file")"
+    if ! artifact_package_allowed "$package_file_name"; then
       skipped_count=$((skipped_count + 1))
       continue
     fi
 
-    target_file="$OUTPUT_DIR/$(release_package_name "$package_file")"
+    group_name="$(artifact_package_group "$package_file_name")" ||
+      die "No artifact group was found for package file: $package_file_name"
+    if artifact_group_should_be_skipped "$group_name"; then
+      skipped_count=$((skipped_count + 1))
+      continue
+    fi
+
+    if [ -z "${group_counts[$group_name]+set}" ]; then
+      group_counts[$group_name]=0
+      groups+=("$group_name")
+    fi
+
+    group_dir="$staging_dir/$group_name"
+    mkdir -p "$group_dir"
+
+    release_name="$(release_package_name "$package_file" "$group_name")"
+    target_file="$group_dir/$release_name"
     [ ! -e "$target_file" ] || die "Duplicate package artifact name: $target_file"
     cp -a "$package_file" "$target_file"
+    group_counts[$group_name]=$((group_counts[$group_name] + 1))
     copied_count=$((copied_count + 1))
   done < <(find "$package_bin_dir" -type f \( -name '*.ipk' -o -name '*.apk' \) -print0)
 
   [ "$copied_count" -gt 0 ] || die "No selected package files were copied from $package_bin_dir"
-  log "Copied $copied_count selected package files to $OUTPUT_DIR with package architecture suffixes; LuCI and AriaNg APK files use all; skipped $skipped_count dependency files"
+
+  for group_name in "${groups[@]}"; do
+    group_dir="$staging_dir/$group_name"
+    [ "${group_counts[$group_name]}" -gt 0 ] || die "No files were staged for artifact group: $group_name"
+
+    zip_file="$OUTPUT_DIR/$(artifact_zip_name "$group_name")"
+    [ ! -e "$zip_file" ] || die "Duplicate package zip artifact name: $zip_file"
+    (
+      cd "$group_dir"
+      zip -q -r "$zip_file" .
+    )
+    zip_count=$((zip_count + 1))
+  done
+
+  rm -rf "$staging_dir"
+  log "Packed $copied_count selected package files into $zip_count grouped zip files under $OUTPUT_DIR; skipped $skipped_count dependency files"
 
   if [ -n "${GITHUB_ENV:-}" ]; then
     echo "PACKAGE_OUTPUT_DIR=$OUTPUT_DIR" >> "$GITHUB_ENV"
