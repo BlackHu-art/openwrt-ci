@@ -30,12 +30,7 @@ on:
         type: choice
         options:
           - ALL
-          - aria2
-          - ariang
-          - frp
           - nginx
-          - gecoosac
-          - openlist2
           - luci-app-aria2
           - luci-app-frpc
           - luci-app-frps
@@ -79,6 +74,7 @@ jobs:
       id: matrix
       env:
         SELECTED_ARCH: ${{ inputs.arch }}
+        SELECTED_PACKAGE: ${{ inputs.package }}
         SELECTED_SDK_VERSION: ${{ inputs.sdk_version }}
       run: |
         python3 - <<'PY' >> "$GITHUB_OUTPUT"
@@ -86,6 +82,7 @@ jobs:
         import os
 
         selected_arch = os.environ["SELECTED_ARCH"]
+        selected_package = os.environ["SELECTED_PACKAGE"].lower()
         selected_sdk_version = os.environ["SELECTED_SDK_VERSION"]
 
         sdk_versions = ["main", "25.12", "24.10", "23.05"]
@@ -98,7 +95,9 @@ jobs:
         else:
             raise SystemExit(f"Unsupported sdk_version: {selected_sdk_version}")
 
-        if selected_arch == "ALL":
+        if selected_arch == "ALL" and selected_package == "luci-theme-aurora":
+            selected_architectures = ["x86-64"]
+        elif selected_arch == "ALL":
             selected_architectures = architectures
         elif selected_arch in architectures:
             selected_architectures = [selected_arch]
@@ -195,6 +194,7 @@ jobs:
           unzip \
           wget \
           xz-utils \
+          zip \
           zlib1g-dev \
           zstd
         sudo timedatectl set-timezone "$TZ"
@@ -209,6 +209,7 @@ jobs:
         OPENWRT_TARGET_PROFILE: ${{ matrix.openwrt_target_profile }}
         PACKAGE_CONFIG_FILES: ${{ matrix.config_files }}
         PACKAGE_ARCH_NAME: ${{ matrix.name }}
+        PACKAGE_SELECTED_ARCH: ${{ inputs.arch }}
         PACKAGE_SELECTION: ${{ inputs.package }}
         OPENWRT_SDK_VERSION: ${{ matrix.sdk_version }}
       run: |
@@ -254,4 +255,4 @@ jobs:
           - 选择的 SDK：${{ inputs.sdk_version }}
           - 选择的软件包：${{ inputs.package }}
           - 源码来源：[laipeng668/packages](https://github.com/laipeng668/packages)（aria2、ariang、frp-binary-toml、nginx分支）、[laipeng668/luci](https://github.com/laipeng668/luci)（frp-toml分支）、[laipeng668/luci-app-gecoosac](https://github.com/laipeng668/luci-app-gecoosac)、[laipeng668/luci-app-openlist2](https://github.com/laipeng668/luci-app-openlist2)、[eamonxg/luci-theme-aurora](https://github.com/eamonxg/luci-theme-aurora)、[eamonxg/luci-app-aurora-config](https://github.com/eamonxg/luci-app-aurora-config)
-          - 安装说明：`apk` 软件包使用 `apk add --allow-untrusted *.apk`，`ipk` 软件包使用 `opkg install *.ipk`
+          - 说明：Release 附件按 `<SDK>-<软件包>-<架构>.zip` 分组，普通分组内的 `.apk/.ipk` 文件也使用对应架构后缀；`luci-theme-aurora` 使用 `all` 架构后缀，`arch=ALL` 时也只保留一份。下载后先解压，`apk` 软件包使用 `apk add --allow-untrusted *.apk` 安装，`ipk` 软件包使用 `opkg install *.ipk` 安装。

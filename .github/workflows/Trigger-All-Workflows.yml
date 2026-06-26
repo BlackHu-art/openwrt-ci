@@ -1,0 +1,30 @@
+name: Trigger-All-Workflows
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * 5"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+
+    IPQ60XX-LibWrt:
+      uses: ./.github/workflows/IPQ60XX-LibWrt.yml
+
+    IPQ807X-LibWrt:
+      uses: ./.github/workflows/IPQ807X-LibWrt.yml
+
+    JDCloud-ImmortalWrt:
+      uses: ./.github/workflows/JDCloud-ImmortalWrt.yml
+
+    JDCloud-NoWiFi-ImmortalWrt:
+      uses: ./.github/workflows/JDCloud-NoWiFi-ImmortalWrt.yml
+
+    x86-64-ImmortalWrt:
+      uses: ./.github/workflows/x86-64-ImmortalWrt.yml
+
+    Build-Packages:
+      uses: ./.github/workflows/Build-Packages.yml
