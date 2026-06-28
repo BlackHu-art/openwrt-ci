@@ -242,6 +242,21 @@ jobs:
         path: artifacts/release
         merge-multiple: true
 
+    - name: Prepare Release Body
+      run: |
+        cat > release_body.txt <<EOF
+        **OpenWrt Packages**
+          - SDK Version: ${{ inputs.sdk_version }}
+          - Architecture: ${{ inputs.arch }}
+          - Package: ${{ inputs.package }}
+
+        Download the matching archive, extract it, then install packages with:
+        \`\`\`
+        apk add --allow-untrusted *.apk
+        opkg install *.ipk
+        \`\`\`
+        EOF
+
     - name: Upload Packages To Release(发布软件包)
       uses: ncipollo/release-action@v1
       with:
@@ -252,13 +267,4 @@ jobs:
         tag: Packages
         token: ${{ github.token }}
         artifacts: artifacts/release/*
-        body: |
-          **OpenWrt 软件包**
-          - SDK 来源：${{ inputs.sdk_version }}（ALL 同时编译 main/25.12/24.10/23.05，main 使用 OpenWrt snapshots，23.05/24.10/25.12 自动使用对应系列最新稳定版本）
-          - x86-64 配置文件：x86/64，configs/x86-64.config + configs/Packages.config
-          - aarch64 配置文件：main/25.12 使用 qualcommax/ipq60xx，configs/JDCloud.config + configs/Packages.config；23.05/24.10 使用 mediatek/filogic，SDK脚本内置rax3000m配置 + configs/Packages.config
-          - 选择的架构：${{ inputs.arch }}
-          - 选择的 SDK：${{ inputs.sdk_version }}
-          - 选择的软件包：${{ inputs.package }}
-          - 源码来源：[laipeng668/packages](https://github.com/laipeng668/packages)（aria2、ariang、frp-binary-toml、nginx分支）、[laipeng668/luci](https://github.com/laipeng668/luci)（frp-toml分支）、[laipeng668/luci-app-gecoosac](https://github.com/laipeng668/luci-app-gecoosac)、[laipeng668/luci-app-openlist2](https://github.com/laipeng668/luci-app-openlist2)、[eamonxg/luci-theme-aurora](https://github.com/eamonxg/luci-theme-aurora)、[eamonxg/luci-app-aurora-config](https://github.com/eamonxg/luci-app-aurora-config)
-          - 说明：Release 附件按 `<SDK>-<软件包>-<架构>.zip` 分组，普通分组内的 `.apk/.ipk` 文件也使用对应架构后缀；`luci-theme-aurora` 使用 `all` 架构后缀，`arch=ALL` 时也只保留一份。下载后先解压，`apk` 软件包使用 `apk add --allow-untrusted *.apk` 安装，`ipk` 软件包使用 `opkg install *.ipk` 安装。
+        bodyFile: release_body.txt
