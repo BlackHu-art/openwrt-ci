@@ -45,8 +45,8 @@ on:
         default: apk
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
+  actions: read
 
 defaults:
   run:
@@ -61,6 +61,9 @@ jobs:
   Build:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
+    permissions:
+      contents: write
+      actions: write
     concurrency:
       group: openwrt-${{ inputs.artifact_prefix }}-${{ github.ref }}
       cancel-in-progress: false
@@ -105,6 +108,8 @@ jobs:
 
     - name: Checkout(检出代码)
       uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - name: Clone Source Code(克隆源代码)
       env:
