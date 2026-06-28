@@ -635,7 +635,7 @@ release_package_name() {
       package_path_arch="$(basename "$(dirname "$(dirname "$package_file")")")"
       case "$safe_package_name" in
         *_"$package_path_arch".ipk)
-          package_release_name="${safe_package_name%_$package_path_arch.ipk}_$package_arch.ipk"
+          package_release_name="${safe_package_name%_"$package_path_arch".ipk}_$package_arch.ipk"
           ;;
         *)
           package_release_name="${safe_package_name%.ipk}_$package_arch.ipk"
