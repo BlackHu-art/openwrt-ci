@@ -53,7 +53,8 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
+  actions: read
 
 defaults:
   run:
@@ -201,6 +202,8 @@ jobs:
 
     - name: Checkout(检出代码)
       uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - name: Build Packages With OpenWrt SDK(使用OpenWrt SDK编译软件包)
       env:
@@ -227,6 +230,9 @@ jobs:
     runs-on: ubuntu-24.04
     needs: Build
     if: ${{ !cancelled() && needs.Build.result == 'success' }}
+    permissions:
+      contents: write
+      actions: read
 
     steps:
     - name: Download Packages Artifacts(下载软件包产物)

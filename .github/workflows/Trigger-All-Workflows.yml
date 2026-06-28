@@ -6,27 +6,45 @@ on:
     - cron: "0 18 * * 5"
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
+  actions: read
 
 jobs:
 
     IPQ60XX-LibWrt:
       uses: ./.github/workflows/IPQ60XX-LibWrt.yml
+      permissions:
+        contents: write
+        actions: write
 
     IPQ807X-LibWrt:
       uses: ./.github/workflows/IPQ807X-LibWrt.yml
+      permissions:
+        contents: write
+        actions: write
 
     JDCloud-ImmortalWrt:
       uses: ./.github/workflows/JDCloud-ImmortalWrt.yml
+      permissions:
+        contents: write
+        actions: write
 
     JDCloud-NoWiFi-ImmortalWrt:
       uses: ./.github/workflows/JDCloud-NoWiFi-ImmortalWrt.yml
+      permissions:
+        contents: write
+        actions: write
 
     x86-64-ImmortalWrt:
       uses: ./.github/workflows/x86-64-ImmortalWrt.yml
+      permissions:
+        contents: write
+        actions: write
 
     Build-Packages:
       uses: ./.github/workflows/Build-Packages.yml
+      permissions:
+        contents: write
+        actions: read
       with:
         sdk_version: ALL
