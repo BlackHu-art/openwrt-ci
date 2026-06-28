@@ -28,3 +28,5 @@ jobs:
 
     Build-Packages:
       uses: ./.github/workflows/Build-Packages.yml
+      with:
+        sdk_version: ALL
