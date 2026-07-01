@@ -879,6 +879,9 @@ log "Load custom packages"
 remove_builtin_packages
 load_custom_packages
 
+log "Refresh SDK feed indexes"
+./scripts/feeds update -i -a
+
 log "Install SDK feeds"
 ./scripts/feeds install -a
 prune_luci_translations
