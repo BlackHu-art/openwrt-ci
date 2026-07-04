@@ -15,6 +15,7 @@
 - 本人 fork 的仓库：[ImmortalWrt](https://github.com/laipeng668/immortalwrt) [LibWrt](https://github.com/laipeng668/openwrt-6.x)，内容大体一致。
 - `ImmortalWrt` 和 `LibWrt` 分别通过 rebase 和 merge 进行更新，相互印证。
 - `LibWrt` 因为 DTS 更为丰富，所以支持更多的机型。
+
 ## 定制固件
 - 首先要登录 Github 账号，然后 fork 此项目到你自己的 Github 仓库。
 - 修改 `configs` 目录对应的文件添加或删除插件，或者上传自己的 `xx.config` 配置文件。

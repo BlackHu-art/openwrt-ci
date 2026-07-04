@@ -1,5 +1,8 @@
-# 修改默认IP & 固件名称 & 编译署名
-sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# 修改默认IP & 固件名称 & 编译署名和时间
+sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
 sed -i "s/hostname='.*'/hostname='Roc'/g" package/base-files/files/bin/config_generate
 luci_system_js="feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
 firmware_version_anchor="_('Firmware Version'), (L.isObject(boardinfo.release) ? boardinfo.release.description + ' / ' : '') + (luciversion || ''),"
@@ -11,12 +14,11 @@ sed -i "s#_('Firmware Version'), (L\.isObject(boardinfo\.release) ? boardinfo\.r
                 ? boardinfo.release.description + ' / '\n \
                 : '') + (luciversion || '') + ' / ',\n \
             E('a', {\n \
-                href: 'https://github.com/BlackHu-art/openwrt-ci/releases',\n \
+                href: 'https://github.com/laipeng668/openwrt-ci-roc/releases',\n \
                 target: '_blank',\n \
                 rel: 'noopener noreferrer'\n \
                 }, [ 'Built by Roc $(date "+%Y-%m-%d %H:%M:%S")' ])\n \
             ]),#" "$luci_system_js"
-
 
 # 调整NSS驱动q6_region内存区域预留大小（ipq6018.dtsi默认预留85MB，ipq6018-512m.dtsi默认预留55MB，带WiFi必须至少预留54MB，以下分别是改成预留16MB、32MB、64MB和96MB）
 # sed -i 's/reg = <0x0 0x4ab00000 0x0 0x[0-9a-f]\+>/reg = <0x0 0x4ab00000 0x0 0x01000000>/' target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-512m.dtsi
@@ -41,36 +43,38 @@ rm -rf feeds/packages/net/nginx
 rm -rf feeds/packages/net/frp
 rm -rf feeds/packages/lang/golang
 
-
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {
-  branch="$1" repourl="$2" && shift 2
-  git clone --depth=1 -b $branch --single-branch --filter=blob:none --sparse $repourl
-  repodir=$(echo $repourl | awk -F '/' '{print $(NF)}')
-  cd $repodir && git sparse-checkout set $@
-  mv -f $@ ../package
-  cd .. && rm -rf $repodir
+  local branch="$1"
+  local repourl="$2"
+  local repodir
+  shift 2
+
+  repodir="$(basename "${repourl%.git}")"
+  rm -rf "$repodir"
+  git clone --depth=1 -b "$branch" --single-branch --filter=blob:none --sparse "$repourl" "$repodir"
+  (
+    cd "$repodir"
+    git sparse-checkout set "$@"
+    mv -f "$@" ../package
+  )
+  rm -rf "$repodir"
 }
 
-# 自定义添加iStore netspeedtest partexp poweroff
-git_sparse_clone main https://github.com/linkease/istore-ui app-store-ui
-git_sparse_clone main https://github.com/linkease/istore luci
-git clone --depth=1 https://github.com/sirpdboy/luci-app-netspeedtest package/netspeedtest
-git clone --depth=1 https://github.com/sirpdboy/luci-app-partexp.git package/luci-app-partexp
-git clone --depth=1 https://github.com/esirplayground/luci-app-poweroff package/luci-app-poweroff
-
 # Aria2 & nginx & Go & frp & Argon & Aurora & OpenList & Lucky & wechatpush & OpenAppFilter & 集客无线AC控制器 & 雅典娜LED控制
-# git_sparse_clone ariang https://github.com/laipeng668/packages net/ariang
-git_sparse_clone master https://github.com/laipeng668/packages lang/golang
-mv -f package/golang feeds/packages/lang/golang
-# git_sparse_clone frp-binary https://github.com/laipeng668/packages net/frp
-# mv -f package/frp feeds/packages/net/frp
-# git_sparse_clone frp https://github.com/laipeng668/luci applications/luci-app-frpc applications/luci-app-frps
-# mv -f package/luci-app-frpc feeds/luci/applications/luci-app-frpc
-# mv -f package/luci-app-frps feeds/luci/applications/luci-app-frps
+git_sparse_clone aria2 https://github.com/laipeng668/packages net/aria2
+mv -f package/aria2 feeds/packages/net/aria2
 git_sparse_clone nginx https://github.com/laipeng668/packages net/nginx
 mv -f package/nginx feeds/packages/net/nginx
-git_sparse_clone master https://github.com/kenzok8/openwrt-packages adguardhome luci-app-adguardhome
+git_sparse_clone ariang https://github.com/laipeng668/packages net/ariang
+mv -f package/ariang feeds/packages/net/ariang
+git_sparse_clone master https://github.com/laipeng668/packages lang/golang
+mv -f package/golang feeds/packages/lang/golang
+git_sparse_clone frp-binary-toml https://github.com/laipeng668/packages net/frp
+mv -f package/frp feeds/packages/net/frp
+git_sparse_clone frp-toml https://github.com/laipeng668/luci applications/luci-app-frpc applications/luci-app-frps
+mv -f package/luci-app-frpc feeds/luci/applications/luci-app-frpc
+mv -f package/luci-app-frps feeds/luci/applications/luci-app-frps
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon feeds/luci/themes/luci-theme-argon
 git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config feeds/luci/applications/luci-app-argon-config
 git clone --depth=1 https://github.com/eamonxg/luci-theme-aurora feeds/luci/themes/luci-theme-aurora
@@ -79,7 +83,7 @@ git clone --depth=1 https://github.com/laipeng668/luci-app-openlist2 package/ope
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky package/luci-app-lucky
 git clone --depth=1 https://github.com/tty228/luci-app-wechatpush package/luci-app-wechatpush
 git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
-# git clone --depth=1 https://github.com/laipeng668/luci-app-gecoosac package/luci-app-gecoosac
+git clone --depth=1 https://github.com/laipeng668/luci-app-gecoosac package/luci-app-gecoosac
 git clone --depth=1 https://github.com/NONGFAH/luci-app-athena-led package/luci-app-athena-led
 chmod +x package/luci-app-athena-led/root/etc/init.d/athena_led package/luci-app-athena-led/root/usr/sbin/athena-led
 
@@ -99,5 +103,5 @@ git clone --depth=1 https://github.com/vernesong/OpenClash package/luci-app-open
 # 清理 PassWall 的 chnlist 规则文件
 echo "baidu.com"  > package/luci-app-passwall/luci-app-passwall/root/usr/share/passwall/rules/chnlist
 
-./scripts/feeds update -a
+./scripts/feeds update -i -a
 ./scripts/feeds install -a
