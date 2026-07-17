@@ -6,7 +6,7 @@ on:
       sdk_version:
         description: 可选：OpenWrt SDK 版本，ALL 表示全部版本，main 使用主线 snapshots，稳定版自动使用对应系列最新版本。
         required: false
-        default: main
+        default: '25.12'
         type: choice
         options:
           - ALL
@@ -41,7 +41,7 @@ on:
     inputs:
       sdk_version:
         required: false
-        default: main
+        default: ALL
         type: string
       arch:
         required: false

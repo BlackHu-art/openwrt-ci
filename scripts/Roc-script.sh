@@ -33,8 +33,11 @@ rm -rf feeds/luci/applications/luci-app-wechatpush
 rm -rf feeds/luci/applications/luci-app-appfilter
 rm -rf feeds/luci/applications/luci-app-frpc
 rm -rf feeds/luci/applications/luci-app-frps
+rm -rf feeds/luci/applications/luci-app-upnp
+rm -rf feeds/luci/applications/luci-app-wol
 rm -rf feeds/luci/themes/luci-theme-argon
 rm -rf feeds/packages/net/open-app-filter
+rm -rf feeds/packages/net/miniupnpd
 rm -rf feeds/packages/net/ariang
 rm -rf feeds/packages/net/aria2
 rm -rf feeds/packages/net/nginx
@@ -71,6 +74,12 @@ mv -f package/golang feeds/packages/lang/golang
 git_sparse_clone nginx https://github.com/laipeng668/packages net/nginx
 mv -f package/nginx feeds/packages/net/nginx
 git_sparse_clone master https://github.com/kenzok8/openwrt-packages adguardhome luci-app-adguardhome
+git_sparse_clone master https://github.com/immortalwrt/packages net/miniupnpd
+mv -f package/miniupnpd feeds/packages/net/miniupnpd
+git_sparse_clone master https://github.com/immortalwrt/luci applications/luci-app-upnp
+mv -f package/luci-app-upnp feeds/luci/applications/luci-app-upnp
+git_sparse_clone master https://github.com/immortalwrt/luci applications/luci-app-wol
+mv -f package/luci-app-wol feeds/luci/applications/luci-app-wol
 git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon feeds/luci/themes/luci-theme-argon
 git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config feeds/luci/applications/luci-app-argon-config
 git clone --depth=1 https://github.com/eamonxg/luci-theme-aurora feeds/luci/themes/luci-theme-aurora

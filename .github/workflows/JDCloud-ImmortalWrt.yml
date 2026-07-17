@@ -18,7 +18,7 @@ jobs:
       actions: write
     with:
       repo_url: https://github.com/laipeng668/immortalwrt.git
-      repo_branch: master
+      repo_branch: openwrt-25.12
       config_file: configs/JDCloud.config
       firmware_tag: JDCloud
       kernel_file: kernel-6.12
