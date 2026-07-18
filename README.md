@@ -8,7 +8,7 @@
 - **本固件禁止用于任何商业用途，请务必严格遵守国家互联网使用相关法律规定！**
 
 ## 项目说明
-- 默认管理地址：**`192.168.2.1`**，默认用户：**`root`**，默认密码：**`无`**
+- 默认管理地址：**`192.168.2.1`**，默认用户：**`root`**，默认密码：**`none`**
 - [云编译来源](https://github.com/haiibo/OpenWrt) [视频教程](https://www.youtube.com/watch?v=6j4ofS0GT38) [问题合集](https://github.com/LiBwrt/openwrt-6.x/issues)
 
 ## 仓库说明
@@ -39,8 +39,8 @@
   - `https://github.com/laipeng668/luci` 的 `frp-toml` 分支：`applications/luci-app-frpc`、`applications/luci-app-frps`
   - `https://github.com/laipeng668/luci-app-gecoosac` 的 `main` 分支：`gecoosac`、`luci-app-gecoosac`
   - `https://github.com/laipeng668/luci-app-openlist2` 的 `main` 分支：`openlist2`、`luci-app-openlist2`
-  - `https://github.com/eamonxg/luci-theme-aurora` 的 `main` 分支：`luci-theme-aurora`
-  - `https://github.com/eamonxg/luci-app-aurora-config` 的 `main` 分支：`luci-app-aurora-config`
+  - `https://github.com/eamonxg/luci-theme-aurora` 的 `master` 分支：`luci-theme-aurora`
+  - `https://github.com/eamonxg/luci-app-aurora-config` 的 `master` 分支：`luci-app-aurora-config`
 - 编译产物会按 `<SDK>-<软件包>-<架构>.zip` 分组打包，上传到本次 workflow 的 `Artifacts`，并发布到 `Packages` 这个 [Releases](https://github.com/laipeng668/openwrt-ci-roc/releases/tag/Packages)；普通分组内的 `.apk/.ipk` 文件也使用对应架构后缀。`luci-theme-aurora` 是通用主题包，使用 `all` 架构后缀，`arch=ALL` 时也只保留一份。下载后先解压，`apk` 使用 `apk add --allow-untrusted *.apk` 安装，`ipk` 使用 `opkg install *.ipk` 安装。
 
 ## 页面预览

@@ -18,10 +18,10 @@ jobs:
       actions: write
     with:
       repo_url: https://github.com/immortalwrt/immortalwrt.git
-      repo_branch: master
+      repo_branch: openwrt-25.12
       config_file: configs/x86-64.config
       firmware_tag: x86-64
-      kernel_file: kernel-6.18
+      kernel_file: kernel-6.12
       artifact_prefix: x86.64
       manifest_file: immortalwrt-x86-64-generic.manifest
       remove_sqm_scripts_nss: true
