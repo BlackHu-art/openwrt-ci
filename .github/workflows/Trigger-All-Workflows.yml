@@ -2,6 +2,37 @@ name: Trigger-All-Workflows
 
 on:
   workflow_dispatch:
+    inputs:
+      ipq60xx_libwrt:
+        description: 运行 IPQ60XX-LibWrt
+        required: false
+        type: boolean
+        default: true
+      ipq807x_libwrt:
+        description: 运行 IPQ807X-LibWrt
+        required: false
+        type: boolean
+        default: true
+      jdcloud_immortalwrt:
+        description: 运行 JDCloud-ImmortalWrt
+        required: false
+        type: boolean
+        default: true
+      jdcloud_nowifi_immortalwrt:
+        description: 运行 JDCloud-NoWiFi-ImmortalWrt
+        required: false
+        type: boolean
+        default: true
+      x86_64_immortalwrt:
+        description: 运行 x86-64-ImmortalWrt
+        required: false
+        type: boolean
+        default: true
+      build_packages:
+        description: 运行 Build-Packages
+        required: false
+        type: boolean
+        default: true
   schedule:
     - cron: "0 18 * * 5"
 
@@ -12,36 +43,42 @@ permissions:
 jobs:
 
     IPQ60XX-LibWrt:
+      if: ${{ github.event_name == 'schedule' || inputs.ipq60xx_libwrt }}
       uses: ./.github/workflows/IPQ60XX-LibWrt.yml
       permissions:
         contents: write
         actions: write
 
     IPQ807X-LibWrt:
+      if: ${{ github.event_name == 'schedule' || inputs.ipq807x_libwrt }}
       uses: ./.github/workflows/IPQ807X-LibWrt.yml
       permissions:
         contents: write
         actions: write
 
     JDCloud-ImmortalWrt:
+      if: ${{ github.event_name == 'schedule' || inputs.jdcloud_immortalwrt }}
       uses: ./.github/workflows/JDCloud-ImmortalWrt.yml
       permissions:
         contents: write
         actions: write
 
     JDCloud-NoWiFi-ImmortalWrt:
+      if: ${{ github.event_name == 'schedule' || inputs.jdcloud_nowifi_immortalwrt }}
       uses: ./.github/workflows/JDCloud-NoWiFi-ImmortalWrt.yml
       permissions:
         contents: write
         actions: write
 
     x86-64-ImmortalWrt:
+      if: ${{ github.event_name == 'schedule' || inputs.x86_64_immortalwrt }}
       uses: ./.github/workflows/x86-64-ImmortalWrt.yml
       permissions:
         contents: write
         actions: write
 
     Build-Packages:
+      if: ${{ github.event_name == 'schedule' || inputs.build_packages }}
       uses: ./.github/workflows/Build-Packages.yml
       permissions:
         contents: write
