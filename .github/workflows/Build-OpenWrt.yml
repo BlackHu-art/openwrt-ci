@@ -99,7 +99,7 @@ jobs:
         sudo -E apt-get -y update
         sudo -E apt-get -y install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
           bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
-          git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
+          git gperf haveged help2man intltool jq libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
           libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libfuse-dev libssl-dev libtool lrzsz \
           genisoimage msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip libpython3-dev qemu-utils \
           rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
@@ -131,6 +131,21 @@ jobs:
         } >> "$GITHUB_ENV"
         VERSION_KERNEL="$(grep -oP 'LINUX_KERNEL_HASH-\K[0-9]+\.[0-9]+\.[0-9]+' "target/linux/generic/$KERNEL_FILE" | head -n 1 || true)"
         echo "VERSION_KERNEL=${VERSION_KERNEL:-unknown}" >> "$GITHUB_ENV"
+
+    - name: Disable Mainland Mirrors(屏蔽大陆下载源)
+      run: |
+        cd "$OPENWRT_PATH"
+        mirror_file="scripts/projectsmirrors.json"
+        jq '
+          with_entries(
+            .value |= map(select(
+              test("^https?://(mirrors\\.tencent\\.com|mirrors\\.aliyun\\.com|mirrors\\.tuna\\.tsinghua\\.edu\\.cn|mirrors\\.ustc\\.edu\\.cn|mirror\\.iscas\\.ac\\.cn|mirror\\.nju\\.edu\\.cn)(/|$)")
+              | not
+            ))
+          )
+        ' "$mirror_file" > "$mirror_file.tmp"
+        mv "$mirror_file.tmp" "$mirror_file"
+        sed -i '/raw\.gitmirror\.com/d' scripts/download.pl
 
     - name: Generate Variables(生成变量)
       env:
