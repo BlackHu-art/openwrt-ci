@@ -47,11 +47,8 @@ normalize_package_selection() {
     "" | all | "全部")
       printf 'all\n'
       ;;
-    frp | nginx | luci-app-aria2 | luci-app-frpc | luci-app-frps | luci-app-gecoosac | luci-app-openlist2 | luci-theme-aurora)
+    frp | nginx | luci-app-frpc | luci-app-frps | luci-app-gecoosac | luci-app-openlist2 | luci-theme-aurora)
       printf '%s\n' "$selection"
-      ;;
-    aria2 | ariang)
-      printf 'luci-app-aria2\n'
       ;;
     frpc)
       printf 'luci-app-frpc\n'
@@ -75,7 +72,7 @@ normalize_package_selection() {
       printf 'luci-app-openlist2\n'
       ;;
     *)
-      die "Unsupported PACKAGE_SELECTION: ${1:-} (supported: all, nginx, luci-app-aria2, luci-app-frpc, luci-app-frps, luci-app-gecoosac, luci-app-openlist2, luci-theme-aurora; legacy aliases: aria2, ariang, frp, gecoosac, openlist2)"
+      die "Unsupported PACKAGE_SELECTION: ${1:-} (supported: all, nginx, luci-app-frpc, luci-app-frps, luci-app-gecoosac, luci-app-openlist2, luci-theme-aurora; legacy aliases: frp, gecoosac, openlist2)"
       ;;
   esac
 }
@@ -310,8 +307,6 @@ git_clone_package_repo() {
 
 remove_builtin_packages() {
   rm -rf \
-    "$SDK_ROOT/feeds/packages/net/aria2" \
-    "$SDK_ROOT/feeds/packages/net/ariang" \
     "$SDK_ROOT/feeds/packages/net/frp" \
     "$SDK_ROOT/feeds/packages/lang/golang" \
     "$SDK_ROOT/feeds/packages/net/nginx" \
@@ -322,8 +317,6 @@ remove_builtin_packages() {
 load_custom_packages() {
   mkdir -p "$SPARSE_ROOT"
 
-  git_sparse_clone aria2 "$PACKAGES_REPO" feeds/packages net/aria2
-  git_sparse_clone ariang "$PACKAGES_REPO" feeds/packages net/ariang
   git_sparse_clone master "$PACKAGES_REPO" feeds/packages lang/golang
   git_sparse_clone frp-binary-toml "$PACKAGES_REPO" feeds/packages net/frp
   git_sparse_clone nginx "$PACKAGES_REPO" feeds/packages net/nginx
@@ -442,22 +435,6 @@ add_luci_i18n_packages() {
 generate_artifact_filters() {
   ARTIFACT_PACKAGE_NAMES=()
 
-  if selection_in luci-app-aria2 && {
-    config_package_enabled aria2 ||
-      config_package_enabled luci-app-aria2
-  }; then
-    add_artifact_package aria2
-  fi
-
-  if selection_in luci-app-aria2 && config_package_enabled ariang; then
-    add_artifact_package ariang
-  fi
-
-  if selection_in luci-app-aria2 && config_package_enabled luci-app-aria2; then
-    add_artifact_package luci-app-aria2
-    add_luci_i18n_packages aria2
-  fi
-
   if { selection_in frp && config_package_enabled frpc; } ||
     { selection_in luci-app-frpc && {
       config_package_enabled frpc ||
@@ -549,15 +526,6 @@ package_file_matches_name() {
 
 artifact_package_group() {
   local package_file_name="$1"
-
-  if package_file_matches_name "$package_file_name" aria2 ||
-    package_file_matches_name "$package_file_name" ariang ||
-    package_file_matches_name "$package_file_name" luci-app-aria2 ||
-    package_file_matches_name "$package_file_name" luci-i18n-aria2-zh-cn ||
-    package_file_matches_name "$package_file_name" luci-i18n-aria2-zh-tw; then
-    printf 'luci-app-aria2\n'
-    return 0
-  fi
 
   if package_file_matches_name "$package_file_name" frpc ||
     package_file_matches_name "$package_file_name" luci-app-frpc ||
@@ -694,20 +662,6 @@ artifact_group_should_be_skipped() {
 generate_compile_targets() {
   COMPILE_TARGETS=()
 
-  if selection_in luci-app-aria2 && {
-    config_package_enabled aria2 ||
-      config_package_enabled luci-app-aria2
-  }; then
-    add_compile_target package/feeds/packages/aria2/compile
-  fi
-
-  if selection_in luci-app-aria2 && {
-    config_package_enabled ariang ||
-      config_package_enabled ariang-nginx
-  }; then
-    add_compile_target package/feeds/packages/ariang/compile
-  fi
-
   if { selection_in frp && {
     config_package_enabled frpc ||
       config_package_enabled frps
@@ -742,10 +696,6 @@ generate_compile_targets() {
 
   if selection_in frp luci-app-frps && config_package_enabled luci-app-frps; then
     add_compile_target package/feeds/luci/luci-app-frps/compile
-  fi
-
-  if selection_in luci-app-aria2 && config_package_enabled luci-app-aria2 && [ -d "$SDK_ROOT/package/feeds/luci/luci-app-aria2" ]; then
-    add_compile_target package/feeds/luci/luci-app-aria2/compile
   fi
 
   if selection_in luci-app-gecoosac && {

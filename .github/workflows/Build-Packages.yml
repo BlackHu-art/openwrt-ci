@@ -31,7 +31,6 @@ on:
         options:
           - ALL
           - nginx
-          - luci-app-aria2
           - luci-app-frpc
           - luci-app-frps
           - luci-app-gecoosac
