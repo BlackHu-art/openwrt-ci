@@ -7,6 +7,7 @@ GECOOSAC_REPO="${GECOOSAC_REPO:-https://github.com/laipeng668/luci-app-gecoosac}
 AURORA_REPO="${AURORA_REPO:-https://github.com/eamonxg/luci-theme-aurora}"
 AURORA_CONFIG_REPO="${AURORA_CONFIG_REPO:-https://github.com/eamonxg/luci-app-aurora-config}"
 OPENLIST2_REPO="${OPENLIST2_REPO:-https://github.com/laipeng668/luci-app-openlist2}"
+LUCKY_REPO="${LUCKY_REPO:-https://github.com/gdy666/luci-app-lucky}"
 OPENWRT_TARGET="${OPENWRT_TARGET:-x86}"
 OPENWRT_SUBTARGET="${OPENWRT_SUBTARGET:-64}"
 OPENWRT_TARGET_PROFILE="${OPENWRT_TARGET_PROFILE:-}"
@@ -47,7 +48,7 @@ normalize_package_selection() {
     "" | all | "全部")
       printf 'all\n'
       ;;
-    frp | nginx | luci-app-frpc | luci-app-frps | luci-app-gecoosac | luci-app-openlist2 | luci-theme-aurora)
+    frp | nginx | luci-app-frpc | luci-app-frps | luci-app-gecoosac | luci-app-lucky | luci-app-openlist2 | luci-theme-aurora)
       printf '%s\n' "$selection"
       ;;
     frpc)
@@ -71,8 +72,11 @@ normalize_package_selection() {
     luci-app-openlist)
       printf 'luci-app-openlist2\n'
       ;;
+    lucky)
+      printf 'luci-app-lucky\n'
+      ;;
     *)
-      die "Unsupported PACKAGE_SELECTION: ${1:-} (supported: all, nginx, luci-app-frpc, luci-app-frps, luci-app-gecoosac, luci-app-openlist2, luci-theme-aurora; legacy aliases: frp, gecoosac, openlist2)"
+      die "Unsupported PACKAGE_SELECTION: ${1:-} (supported: all, nginx, luci-app-frpc, luci-app-frps, luci-app-gecoosac, luci-app-lucky, luci-app-openlist2, luci-theme-aurora; legacy aliases: frp, gecoosac, lucky, openlist2)"
       ;;
   esac
 }
@@ -331,6 +335,9 @@ load_custom_packages() {
   git_clone_package_repo "$OPENLIST2_REPO" "$SDK_ROOT/package/openlist2" \
     openlist2/Makefile \
     luci-app-openlist2/Makefile
+  git_clone_package_repo "$LUCKY_REPO" "$SDK_ROOT/package/lucky" \
+    lucky/Makefile \
+    luci-app-lucky/Makefile
 }
 
 prune_luci_translations() {
@@ -472,6 +479,13 @@ generate_artifact_filters() {
     add_artifact_package openlist2
   fi
 
+  if selection_in luci-app-lucky && {
+    config_package_enabled lucky ||
+      config_package_enabled luci-app-lucky
+  }; then
+    add_artifact_package lucky
+  fi
+
   if selection_in luci-app-gecoosac && {
     config_package_enabled gecoosac ||
       config_package_enabled luci-app-gecoosac
@@ -487,6 +501,11 @@ generate_artifact_filters() {
   if selection_in luci-app-openlist2 && config_package_enabled luci-app-openlist2; then
     add_artifact_package luci-app-openlist2
     add_luci_i18n_packages openlist2
+  fi
+
+  if selection_in luci-app-lucky && config_package_enabled luci-app-lucky; then
+    add_artifact_package luci-app-lucky
+    add_artifact_package luci-i18n-lucky-zh-cn
   fi
 
   if selection_in luci-theme-aurora; then
@@ -556,6 +575,13 @@ artifact_package_group() {
     package_file_matches_name "$package_file_name" luci-i18n-openlist2-zh-cn ||
     package_file_matches_name "$package_file_name" luci-i18n-openlist2-zh-tw; then
     printf 'luci-app-openlist2\n'
+    return 0
+  fi
+
+  if package_file_matches_name "$package_file_name" lucky ||
+    package_file_matches_name "$package_file_name" luci-app-lucky ||
+    package_file_matches_name "$package_file_name" luci-i18n-lucky-zh-cn; then
+    printf 'luci-app-lucky\n'
     return 0
   fi
 
@@ -690,6 +716,13 @@ generate_compile_targets() {
     add_compile_target package/openlist2/openlist2/compile
   fi
 
+  if selection_in luci-app-lucky && {
+    config_package_enabled lucky ||
+      config_package_enabled luci-app-lucky
+  }; then
+    add_compile_target package/lucky/lucky/compile
+  fi
+
   if selection_in frp luci-app-frpc && config_package_enabled luci-app-frpc; then
     add_compile_target package/feeds/luci/luci-app-frpc/compile
   fi
@@ -711,6 +744,10 @@ generate_compile_targets() {
 
   if selection_in luci-app-openlist2 && config_package_enabled luci-app-openlist2; then
     add_compile_target package/openlist2/luci-app-openlist2/compile
+  fi
+
+  if selection_in luci-app-lucky && config_package_enabled luci-app-lucky; then
+    add_compile_target package/lucky/luci-app-lucky/compile
   fi
 
   if selection_in luci-theme-aurora && ! artifact_group_should_be_skipped luci-theme-aurora; then

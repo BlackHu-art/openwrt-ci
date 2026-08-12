@@ -34,6 +34,7 @@ on:
           - luci-app-frpc
           - luci-app-frps
           - luci-app-gecoosac
+          - luci-app-lucky
           - luci-app-openlist2
           - luci-theme-aurora
   workflow_call:
