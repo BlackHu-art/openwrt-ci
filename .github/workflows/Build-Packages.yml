@@ -36,6 +36,7 @@ on:
           - luci-app-gecoosac
           - luci-app-lucky
           - luci-app-openlist2
+          - luci-theme-argon
           - luci-theme-aurora
   workflow_call:
     inputs:
@@ -96,7 +97,7 @@ jobs:
         else:
             raise SystemExit(f"Unsupported sdk_version: {selected_sdk_version}")
 
-        if selected_arch == "ALL" and selected_package == "luci-theme-aurora":
+        if selected_arch == "ALL" and selected_package in {"luci-theme-argon", "luci-theme-aurora"}:
             selected_architectures = ["x86-64"]
         elif selected_arch == "ALL":
             selected_architectures = architectures
