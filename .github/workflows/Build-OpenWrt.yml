@@ -376,6 +376,11 @@ jobs:
       cancel-in-progress: false
 
     steps:
+    - name: Checkout Release Helper(检出发布辅助脚本)
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
     - name: Download Firmware Artifact(下载固件产物)
       uses: actions/download-artifact@v4
       with:
@@ -402,6 +407,12 @@ jobs:
         $PLUGINS
         \`\`\`
         EOF
+
+    - name: Remove Case-Conflicting Release Assets(清理大小写冲突附件)
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ inputs.firmware_tag }}
+      run: bash scripts/cleanup-release-asset-case-conflicts.sh "$RELEASE_TAG" artifacts/firmware
 
     - name: Upload Firmware To Release(发布固件)
       uses: ncipollo/release-action@v1
