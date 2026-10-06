@@ -39,6 +39,10 @@ cat > "$fake_bin/git" <<'EOF'
 set -Eeuo pipefail
 
 case "${1:-}" in
+  -C)
+    [[ "${3:-} ${4:-}" == 'rev-parse HEAD' ]] || exit 1
+    printf '0123456789abcdef0123456789abcdef01234567\n'
+    ;;
   clone)
     destination="${!#}"
     mkdir -p "$destination"

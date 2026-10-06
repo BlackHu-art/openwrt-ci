@@ -22,7 +22,7 @@
 - 不需要的软件包请把 `y` 改成 `n` ，仅在前面添加 `#` 是无效的。
 - 插件对应名称及功能请参考恩山网友帖子：[OpenWrt软件包全量解释](https://www.right.com.cn/FORUM/forum.php?mod=viewthread&tid=8384897)。
 - 如需修改默认 IP、添加或删除插件包以及一些其他设置请在 `scripts/Roc-script.sh` 文件内修改。
-- 固件构建只会拉取设备配置和 `configs/General.config` 中实际启用的第三方软件包，并始终使用对应分支的最新提交。
+- 固件构建会按设备配置和 `configs/General.config` 拉取实际启用的第三方软件包，并统一更新共用的 Go 工具包；各仓库均使用对应分支的最新提交。
 - 每次固件构建都会记录第三方仓库的实际分支和 commit，并在 Release 中附带 `<固件前缀>.third-party-sources.txt` 供核对；该记录文件不会写入固件。
 - 添加或修改 `xx.yml` 文件，最后点击 `Actions` 运行要编译的 `workflow` 即可开始编译。
 - 编译大概需要 1-2 小时，编译完成后在仓库主页 [Releases](https://github.com/laipeng668/openwrt-ci-roc/releases) 对应 Tag 标签内下载固件。
@@ -36,6 +36,7 @@
 - `Build-Packages` 不使用 GitHub Actions 持久缓存；SDK 每次构建都会重新下载并验证签名和 SHA-256，软件包源码也会重新拉取。
 - 实际编译的软件包会参考 `configs/Packages.config` 里的软件包选项，例如 `frpc`、`frps`、`nginx-full`、`lucky`、`luci-app-gecoosac`、`luci-app-argon-config`、`luci-app-aurora-config`、`luci-app-lucky`、`luci-app-openlist2`、`luci-theme-argon` 和 `luci-theme-aurora`。
 - 编译的软件包来源及跟踪分支如下；每次构建都会拉取对应分支的最新提交，并把实际 commit 写入 `BUILDINFO.json`，不会固定第三方源码版本：
+  - `https://github.com/laipeng668/packages` 的 `master` 分支：`lang/golang`（共用 Go 工具包，所有软件包选择都会更新）
   - `https://github.com/laipeng668/packages` 的 `frp-binary` 分支：`net/frp`
   - `https://github.com/laipeng668/packages` 的 `nginx` 分支：`net/nginx`
   - `https://github.com/laipeng668/luci` 的 `frp` 分支：`applications/luci-app-frpc`、`applications/luci-app-frps`
