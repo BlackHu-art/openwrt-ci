@@ -24,6 +24,7 @@
 - 如需修改默认 IP、添加或删除插件包以及一些其他设置请在 `scripts/Roc-script.sh` 文件内修改。
 - 固件构建会按设备配置和 `configs/General.config` 拉取实际启用的第三方软件包，并统一更新共用的 Go 工具包；各仓库均使用对应分支的最新提交。
 - 每次固件构建都会记录第三方仓库的实际分支和 commit，并在 Release 中附带 `<固件前缀>.third-party-sources.txt` 供核对；该记录文件不会写入固件。
+- miniupnpd 2.3.11 暂时移植 [ImmortalWrt packages PR #2001](https://github.com/immortalwrt/packages/pull/2001)（`11ebc02`，检查时尚未合并）：移除源码已包含的两份旧补丁，并刷新日志补丁，修复五类固件共用的 UPnP 编译失败。补丁保存在 `patches/packages/miniupnpd-2.3.11.patch`，只对 2.3.11 应用；上游已包含同一修复时自动跳过，补丁内容不兼容时明确报错。软件包仍跟踪原来的最新分支。
 - 添加或修改 `xx.yml` 文件，最后点击 `Actions` 运行要编译的 `workflow` 即可开始编译。
 - 编译大概需要 1-2 小时，编译完成后在仓库主页 [Releases](https://github.com/laipeng668/openwrt-ci-roc/releases) 对应 Tag 标签内下载固件。
 

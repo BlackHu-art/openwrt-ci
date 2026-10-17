@@ -254,6 +254,7 @@ if package_enabled luci-app-upnp miniupnpd; then
   rm -rf feeds/packages/net/miniupnpd
   git_sparse_clone master https://github.com/immortalwrt/packages net/miniupnpd
   mv package/miniupnpd feeds/packages/net/miniupnpd
+  bash "$WORKSPACE/scripts/fix-miniupnpd-patches.sh" feeds/packages
 fi
 if package_enabled luci-app-upnp; then
   rm -rf feeds/luci/applications/luci-app-upnp
