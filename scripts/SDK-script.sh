@@ -178,39 +178,37 @@ selection_in() {
 resolve_sdk_url() {
   local sdk_base_url
   local sdk_href
+  local checksum_manifest
 
   if [ -n "$SDK_URL" ]; then
     printf '%s\n' "$SDK_URL"
     return
   fi
 
-  sdk_base_url="$(resolve_sdk_base_url)"
+  sdk_base_url="$(resolve_sdk_base_url)" || return 1
   log "Resolve OpenWrt $OPENWRT_SDK_VERSION SDK for $OPENWRT_TARGET/$OPENWRT_SUBTARGET"
-  sdk_href="$(
+  # Direct metadata files remain available when upstream directory indexes fail.
+  # The selected archive's checksum and signature are verified separately below.
+  if ! checksum_manifest="$(
     curl -fL \
       --retry 5 \
       --retry-all-errors \
       --connect-timeout 20 \
       --max-time 120 \
-      "${sdk_base_url%/}/" |
-      grep -oE 'href="[^"]*openwrt-sdk-[^"]+\.tar\.(xz|zst|gz)"' |
-      sed -E 's/^href="([^"]+)"/\1/' |
-      head -n 1 || true
+      "${sdk_base_url%/}/sha256sums"
+  )"; then
+    die "Unable to download SDK checksum list: ${sdk_base_url%/}/sha256sums"
+  fi
+  sdk_href="$(
+    printf '%s\n' "$checksum_manifest" |
+      awk '!found && $2 ~ /^\*?openwrt-sdk-[^/]+\.tar\.(xz|zst|gz)$/ {
+        name = $2; sub(/^\*/, "", name); print name; found = 1
+      }'
   )"
 
   [ -n "$sdk_href" ] || die "OpenWrt SDK archive was not found at $sdk_base_url"
 
-  case "$sdk_href" in
-    http://* | https://*)
-      printf '%s\n' "$sdk_href"
-      ;;
-    /*)
-      printf '%s%s\n' "${OPENWRT_DOWNLOADS_BASE_URL%/}" "$sdk_href"
-      ;;
-    *)
-      printf '%s/%s\n' "${sdk_base_url%/}" "$sdk_href"
-      ;;
-  esac
+  printf '%s/%s\n' "${sdk_base_url%/}" "$sdk_href"
 }
 
 resolve_sdk_base_url() {
@@ -222,13 +220,13 @@ resolve_sdk_base_url() {
     return
   fi
 
-  sdk_version="$(normalize_sdk_version "$OPENWRT_SDK_VERSION")"
+  sdk_version="$(normalize_sdk_version "$OPENWRT_SDK_VERSION")" || return 1
   if [ "$sdk_version" = main ]; then
     printf '%s/snapshots/targets/%s/%s\n' "${OPENWRT_DOWNLOADS_BASE_URL%/}" "$OPENWRT_TARGET" "$OPENWRT_SUBTARGET"
     return
   fi
 
-  release_version="$(resolve_latest_release_version "$sdk_version")"
+  release_version="$(resolve_latest_release_version "$sdk_version")" || return 1
   printf '%s/releases/%s/targets/%s/%s\n' "${OPENWRT_DOWNLOADS_BASE_URL%/}" "$release_version" "$OPENWRT_TARGET" "$OPENWRT_SUBTARGET"
 }
 
@@ -236,19 +234,28 @@ resolve_latest_release_version() {
   local release_version
   local series="$1"
 
-  release_version="$(
+  if ! release_version="$(
     curl -fL \
       --retry 5 \
       --retry-all-errors \
       --connect-timeout 20 \
       --max-time 120 \
-      "${OPENWRT_DOWNLOADS_BASE_URL%/}/releases/" |
-      grep -oE 'href="[0-9]+\.[0-9]+(\.[0-9]+)?/"' |
-      sed -E 's/^href="([^"]+)\/"/\1/' |
-      grep -E "^${series//./\\.}(\\.[0-9]+)?$" |
-      sort -V |
-      tail -n 1 || true
-  )"
+      "${OPENWRT_DOWNLOADS_BASE_URL%/}/.versions.json" |
+      python3 -c '
+import json
+import re
+import sys
+
+versions = json.load(sys.stdin)["versions_list"]
+if not isinstance(versions, list) or not all(isinstance(v, str) for v in versions):
+    raise ValueError("versions_list must be a list of version strings")
+releases = [v for v in versions if re.fullmatch(re.escape(sys.argv[1]) + r"(?:\.[0-9]+)?", v)]
+if releases:
+    print(max(releases, key=lambda v: tuple(int(n) for n in v.split("."))))
+' "$series"
+  )"; then
+    die "Unable to download or parse OpenWrt release metadata: ${OPENWRT_DOWNLOADS_BASE_URL%/}/.versions.json"
+  fi
 
   [ -n "$release_version" ] || die "OpenWrt release series was not found: $series"
   printf '%s\n' "$release_version"

@@ -24,7 +24,7 @@
 - 如需修改默认 IP、添加或删除插件包以及一些其他设置请在 `scripts/Roc-script.sh` 文件内修改。
 - 固件构建会按设备配置和 `configs/General.config` 拉取实际启用的第三方软件包，并统一更新共用的 Go 工具包；各仓库均使用对应分支的最新提交。
 - 每次固件构建都会记录第三方仓库的实际分支和 commit，并在 Release 中附带 `<固件前缀>.third-party-sources.txt` 供核对；该记录文件不会写入固件。
-- miniupnpd 2.3.11 暂时移植 [ImmortalWrt packages PR #2001](https://github.com/immortalwrt/packages/pull/2001)（`11ebc02`，检查时尚未合并）：移除源码已包含的两份旧补丁，并刷新日志补丁，修复五类固件共用的 UPnP 编译失败。补丁保存在 `patches/packages/miniupnpd-2.3.11.patch`，只对 2.3.11 应用；上游已包含同一修复时自动跳过，补丁内容不兼容时明确报错。软件包仍跟踪原来的最新分支。
+- miniupnpd 使用 ImmortalWrt packages `master` 的最新版本；上游已通过 [`e765fb8`](https://github.com/immortalwrt/packages/commit/e765fb8870b5911992eb4b5a1624ad451e42f4a8) 正式修复 2.3.11 的补丁兼容问题，本仓库已移除临时移植及其检查脚本。可运行 `bash tests/miniupnpd-patches.test.sh` 验证固件加载路径和真实源码补丁序列。
 - 添加或修改 `xx.yml` 文件，最后点击 `Actions` 运行要编译的 `workflow` 即可开始编译。
 - 编译大概需要 1-2 小时，编译完成后在仓库主页 [Releases](https://github.com/laipeng668/openwrt-ci-roc/releases) 对应 Tag 标签内下载固件。
 
@@ -32,7 +32,7 @@
 - 点击 `Actions` 运行 `Build-Packages`，`sdk_version` 可选择 `ALL` 同时编译全部版本，或选择 `main` 主线 snapshots、`23.05`、`24.10`、`25.12` 系列的最新稳定版 SDK。
 - 默认同时编译 `x86-64` 和 `aarch64` 两个架构：`x86/64` 使用 `configs/x86-64.config + configs/Packages.config`；`aarch64` 在 `main`、`25.12` 使用 `configs/JDCloud.config + configs/Packages.config`，在 `23.05`、`24.10` 使用 SDK 脚本内置的 rax3000m 配置 + `configs/Packages.config`。
 - `package` 默认是 `ALL`，下拉只保留独立软件包 `nginx`，以及 `luci-app-frpc`、`luci-app-frps`、`luci-app-gecoosac`、`luci-app-lucky`、`luci-app-openlist2`、`luci-theme-argon`、`luci-theme-aurora` 这些 LuCI 入口；选择 LuCI 软件包时会同时编译并发布对应基础包或主题配置插件。旧的 `frp`、`gecoosac`、`lucky`、`openlist2` 输入仅作为兼容别名保留。
-- 脚本会按每个矩阵的版本和架构从 `https://downloads.openwrt.org/` 自动查找对应 SDK，先验证官方签名和 SHA-256，再在本次构建中使用同一组精确 URL 与哈希，避免 snapshots 更新造成前后不一致。
+- 脚本按每个矩阵的版本和架构，从 `https://downloads.openwrt.org/.versions.json` 选择稳定版、从目标目录的 `sha256sums` 定位 SDK，不依赖可能返回 502 的 HTML 目录页面。随后验证官方签名和 SHA-256，并在本次构建中使用同一组精确 URL 与哈希，避免 snapshots 更新造成前后不一致。
 - SDK 签名信任锚来自 OpenWrt 官方 [`openwrt/keyring`](https://github.com/openwrt/keyring) 密钥仓库的构建公钥，仓库内固定主指纹为 `8A8BC12F46B836C0F9CDB36F1D53D1877742E911`；未知签名会直接终止构建，官方换钥时需人工核对后更新公钥。
 - `Build-Packages` 不使用 GitHub Actions 持久缓存；SDK 每次构建都会重新下载并验证签名和 SHA-256，软件包源码也会重新拉取。
 - 实际编译的软件包会参考 `configs/Packages.config` 里的软件包选项，例如 `frpc`、`frps`、`nginx-full`、`lucky`、`luci-app-gecoosac`、`luci-app-argon-config`、`luci-app-aurora-config`、`luci-app-lucky`、`luci-app-openlist2`、`luci-theme-argon` 和 `luci-theme-aurora`。
