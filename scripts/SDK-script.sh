@@ -175,6 +175,58 @@ selection_in() {
   return 1
 }
 
+download_http_file() {
+  local url="$1"
+  local output="${2:--}"
+  local max_time="${3:-120}"
+  local temporary_file
+  local exit_code=0
+
+  temporary_file="$(mktemp "$RUNNER_TEMP/openwrt-download.XXXXXX")" || return 1
+  if curl -fLsS \
+    --connect-timeout 20 \
+    --max-time "$max_time" \
+    --speed-limit 1024 \
+    --speed-time 60 \
+    "$url" -o "$temporary_file"; then
+    :
+  else
+    exit_code=$?
+    log "Download failed (curl exit $exit_code); retry using HTTP/1.1: $url"
+    # Some successful responses (e.g. HTTP 304) leave curl's output untouched.
+    # Never allow fallback to reuse bytes from the failed first transfer.
+    : > "$temporary_file" || { rm -f "$temporary_file"; return 1; }
+    if curl -fLsS \
+      --http1.1 \
+      --retry 2 \
+      --retry-all-errors \
+      --retry-max-time "$max_time" \
+      --connect-timeout 20 \
+      --max-time "$max_time" \
+      --speed-limit 1024 \
+      --speed-time 60 \
+      "$url" -o "$temporary_file"; then
+      :
+    else
+      exit_code=$?
+      rm -f "$temporary_file"
+      return "$exit_code"
+    fi
+  fi
+
+  # Emit metadata only after a successful transfer, never its partial output.
+  if [ "$output" = - ]; then
+    exit_code=0
+    cat "$temporary_file" || exit_code=$?
+    rm -f "$temporary_file"
+    return "$exit_code"
+  fi
+  if ! mv "$temporary_file" "$output"; then
+    rm -f "$temporary_file"
+    return 1
+  fi
+}
+
 resolve_sdk_url() {
   local sdk_base_url
   local sdk_href
@@ -189,14 +241,7 @@ resolve_sdk_url() {
   log "Resolve OpenWrt $OPENWRT_SDK_VERSION SDK for $OPENWRT_TARGET/$OPENWRT_SUBTARGET"
   # Direct metadata files remain available when upstream directory indexes fail.
   # The selected archive's checksum and signature are verified separately below.
-  if ! checksum_manifest="$(
-    curl -fL \
-      --retry 5 \
-      --retry-all-errors \
-      --connect-timeout 20 \
-      --max-time 120 \
-      "${sdk_base_url%/}/sha256sums"
-  )"; then
+  if ! checksum_manifest="$(download_http_file "${sdk_base_url%/}/sha256sums")"; then
     die "Unable to download SDK checksum list: ${sdk_base_url%/}/sha256sums"
   fi
   sdk_href="$(
@@ -235,12 +280,7 @@ resolve_latest_release_version() {
   local series="$1"
 
   if ! release_version="$(
-    curl -fL \
-      --retry 5 \
-      --retry-all-errors \
-      --connect-timeout 20 \
-      --max-time 120 \
-      "${OPENWRT_DOWNLOADS_BASE_URL%/}/.versions.json" |
+    download_http_file "${OPENWRT_DOWNLOADS_BASE_URL%/}/.versions.json" |
       python3 -c '
 import json
 import re
@@ -373,23 +413,11 @@ resolve_sdk_sha256() {
   checksum_signature_url="${checksum_url}.asc"
   checksum_file="$(mktemp "$RUNNER_TEMP/openwrt-sha256sums.XXXXXX")"
   checksum_signature="$(mktemp "$RUNNER_TEMP/openwrt-sha256sums.XXXXXX.asc")"
-  if ! curl -fL \
-    --retry 5 \
-    --retry-all-errors \
-    --connect-timeout 20 \
-    --max-time 120 \
-    "$checksum_url" \
-    -o "$checksum_file"; then
+  if ! download_http_file "$checksum_url" "$checksum_file"; then
     rm -f "$checksum_file" "$checksum_signature"
     die "Unable to download SDK checksum list: $checksum_url"
   fi
-  if ! curl -fL \
-    --retry 5 \
-    --retry-all-errors \
-    --connect-timeout 20 \
-    --max-time 120 \
-    "$checksum_signature_url" \
-    -o "$checksum_signature"; then
+  if ! download_http_file "$checksum_signature_url" "$checksum_signature"; then
     rm -f "$checksum_file" "$checksum_signature"
     die "Unable to download SDK checksum signature: $checksum_signature_url"
   fi
@@ -500,12 +528,7 @@ download_sdk() {
       fi
       ;;
     *)
-      if ! curl -fL \
-        --retry 5 \
-        --retry-all-errors \
-        --connect-timeout 20 \
-        "$resolved_url" \
-        -o "$temporary_archive"; then
+      if ! download_http_file "$resolved_url" "$temporary_archive" 900; then
         rm -f "$temporary_archive"
         return 1
       fi
@@ -542,7 +565,7 @@ download_sdk_with_metadata_retry() {
       break
     fi
 
-    log "SDK changed while downloading; re-resolve signed metadata (attempt $((attempt + 1))/$SDK_METADATA_RETRY_COUNT)"
+    log "SDK download or verification failed; re-resolve signed metadata (attempt $((attempt + 1))/$SDK_METADATA_RETRY_COUNT)"
     SDK_URL=""
     SDK_SHA256=""
     prepare_sdk_metadata

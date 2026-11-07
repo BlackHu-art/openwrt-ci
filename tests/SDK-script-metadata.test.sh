@@ -16,20 +16,26 @@ versions='{"stable_version":"25.12.6","oldstable_version":"24.10.8","upcoming_ve
 archive_name=openwrt-sdk-24.10.10-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
 fixture_manifest="$(printf '%064d *%s\n%064d *%s\n' 1 openwrt-imagebuilder-example.tar.zst 2 "$archive_name")"
 fetch_failure=false
+http2_failure=false
 
 # Only the network boundary is replaced. Directory indexes reproduce the
 # upstream HTTP 502; the actual JSON, manifest and URL parsing runs unchanged.
 curl() {
-  local url="" output=/dev/stdout
+  local url="" output=/dev/stdout http1=false
   while [ "$#" -gt 0 ]; do
     case "$1" in
       -o) output="$2"; shift 2 ;;
-      --retry | --connect-timeout | --max-time) shift 2 ;;
+      --http1.1) http1=true; shift ;;
+      --retry | --retry-max-time | --connect-timeout | --max-time | --speed-limit | --speed-time) shift 2 ;;
       -*) shift ;;
       *) url="$1"; shift ;;
     esac
   done
   printf '%s\n' "$url" >> "$request_log"
+  if [ "$http2_failure" = true ] && [ "$http1" = false ]; then
+    printf 'partial metadata' > "$output"
+    return 92
+  fi
   if [ "$fetch_failure" = true ]; then
     printf 'curl: (22) The requested URL returned error: 502\n' >&2
     return 22
@@ -151,6 +157,11 @@ signed_metadata_is_verified() {
     fail 'Resolved hash must come from the verified manifest entry'
 }
 
+signed_metadata_recovers_from_http2_error() {
+  http2_failure=true
+  signed_metadata_is_verified
+}
+
 tampered_manifest_is_rejected() {
   OPENWRT_SDK_VERSION=main
   SDK_SHA256=""
@@ -160,6 +171,11 @@ tampered_manifest_is_rejected() {
     fail 'A manifest whose SDK hash was altered after signing must fail'; return 1
   fi
   grep -Fq 'signature verification failed' "$test_root/error" || fail 'Failure must come from signature verification'
+}
+
+tampered_fallback_manifest_is_rejected() {
+  http2_failure=true
+  tampered_manifest_is_rejected
 }
 
 invalid_archive_hash_is_rejected() {
@@ -178,7 +194,8 @@ failed=0
 for test_case in latest_release_uses_json stable_sdk_uses_manifest snapshot_sdk_uses_manifest \
   archive_formats_are_supported release_failure_stops_resolution missing_series_stops_resolution \
   malformed_json_is_rejected missing_sdk_is_rejected failed_manifest_is_rejected \
-  signed_metadata_is_verified tampered_manifest_is_rejected invalid_archive_hash_is_rejected; do
+  signed_metadata_is_verified signed_metadata_recovers_from_http2_error \
+  tampered_manifest_is_rejected tampered_fallback_manifest_is_rejected invalid_archive_hash_is_rejected; do
   : > "$request_log"
   if ("$test_case"); then
     printf 'PASS %s\n' "$test_case"

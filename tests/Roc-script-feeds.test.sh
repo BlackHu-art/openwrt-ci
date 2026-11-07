@@ -69,7 +69,7 @@ chmod +x "$fake_bin/git"
 cp "$repo_root/scripts/Roc-script.sh" "$openwrt_root/Roc-script.sh"
 (
   cd "$openwrt_root"
-  PATH="$fake_bin:$PATH" ./Roc-script.sh .config .config
+  PATH="$fake_bin:$PATH" bash ./Roc-script.sh .config .config
 )
 
 for package_name in aria2 ariang; do
