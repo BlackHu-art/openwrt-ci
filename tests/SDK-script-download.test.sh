@@ -13,12 +13,14 @@ printf 'complete SDK archive\n' > "$test_root/sdk.tar.zst"
 EXPECTED_SDK_SHA256="$(sha256sum "$test_root/sdk.tar.zst" | awk '{print $1}')"
 transport_mode=http2-error
 fallback_mode=success
+SDK_DOWNLOAD_RETRY_COUNT=1
 
 # Reproduce the external transport failure from Actions, including partial
 # output. SDK checksum verification and metadata parsing remain real.
 curl() {
   local url="" output=/dev/stdout http1=false max_time=0 speed_time=0 retry_max_time=0
   local retry_count=0 retry_all=false connect_timeout=0 speed_limit=0 expected_max_time=120
+  local resume=""
   while [ "$#" -gt 0 ]; do
     case "$1" in
       -o) output="$2"; shift 2 ;;
@@ -30,20 +32,27 @@ curl() {
       --retry-all-errors) retry_all=true; shift ;;
       --connect-timeout) connect_timeout="$2"; shift 2 ;;
       --speed-limit) speed_limit="$2"; shift 2 ;;
+      --continue-at) resume="$2"; shift 2 ;;
+      --write-out) shift 2 ;;
       -*) shift ;;
       *) url="$1"; shift ;;
     esac
   done
 
   case "$url" in
-    */sdk.tar.zst) expected_max_time=900 ;;
+    */sdk.tar.zst) expected_max_time=1800 ;;
   esac
   if [ "$max_time" -ne "$expected_max_time" ] || [ "$connect_timeout" -ne 20 ] ||
     [ "$speed_time" -ne 60 ] || [ "$speed_limit" -ne 1024 ]; then
     printf 'Transfer, connection and stall limits do not match the download budget\n' >&2
     return 28
   fi
-  if [ "$http1" = true ] && {
+  if [ "$expected_max_time" -eq 1800 ]; then
+    if [ "$http1" != true ] || [ "$resume" != - ] || [ "$retry_count" -ne 0 ]; then
+      printf 'Archive requests must use HTTP/1.1 and resume without internal curl retries\n' >&2
+      return 28
+    fi
+  elif [ "$http1" = true ] && {
     [ "$retry_max_time" -ne "$expected_max_time" ] || [ "$retry_count" -ne 2 ] || [ "$retry_all" != true ];
   }; then
     printf 'Fallback must retry all transfer errors within the download budget\n' >&2
@@ -80,26 +89,26 @@ curl() {
 
 fail() { printf '%s\n' "$*" >&2; return 1; }
 
-http2_failure_recovers_with_http1() {
+sdk_download_starts_with_http1() {
   download_sdk https://downloads.example.invalid/sdk.tar.zst || return 1
   cmp "$test_root/sdk.tar.zst" "$SDK_ARCHIVE" ||
-    fail 'HTTP/1.1 fallback must publish the complete, verified SDK archive'
+    fail 'Archive requests must publish the complete, verified SDK archive'
 }
 
-successful_download_does_not_need_fallback() {
+successful_metadata_download_does_not_need_fallback() {
   transport_mode=success
   fallback_mode=failure
-  download_sdk https://downloads.example.invalid/sdk.tar.zst || return 1
-  cmp "$test_root/sdk.tar.zst" "$SDK_ARCHIVE"
+  OPENWRT_DOWNLOADS_BASE_URL=https://downloads.example.invalid
+  [ "$(resolve_latest_release_version 24.10)" = 24.10.10 ]
 }
 
-failed_fallback_leaves_no_archive() {
+failed_archive_transfer_preserves_checkpoint() {
   fallback_mode=failure
   if download_sdk https://downloads.example.invalid/sdk.tar.zst; then
-    fail 'A failed fallback must fail the SDK download'; return 1
+    fail 'A failed transfer must fail the SDK download'; return 1
   fi
-  [ ! -e "$SDK_ARCHIVE" ] && [ ! -e "$SDK_ARCHIVE.part" ] ||
-    fail 'Partial downloads must not remain in the SDK cache'
+  [ ! -e "$SDK_ARCHIVE" ] && [ "$(cat "$SDK_ARCHIVE.part")" = 'partial fallback' ] ||
+    fail 'Incomplete downloads must remain resumable without becoming verified archives'
 }
 
 corrupt_fallback_is_rejected() {
@@ -144,8 +153,8 @@ verified_sdk_cache_survives_network_failure() {
 }
 
 failed=0
-for test_case in http2_failure_recovers_with_http1 successful_download_does_not_need_fallback \
-  failed_fallback_leaves_no_archive corrupt_fallback_is_rejected \
+for test_case in sdk_download_starts_with_http1 successful_metadata_download_does_not_need_fallback \
+  failed_archive_transfer_preserves_checkpoint corrupt_fallback_is_rejected \
   metadata_fallback_does_not_emit_partial_response local_sdk_file_is_verified \
   verified_sdk_cache_survives_network_failure empty_fallback_does_not_reuse_partial_response; do
   rm -rf "$SDK_CACHE_DIR"

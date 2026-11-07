@@ -31,6 +31,9 @@ SDK_URL="${SDK_URL:-}"
 SDK_SHA256="${SDK_SHA256:-}"
 SDK_METADATA_REFRESH="${SDK_METADATA_REFRESH:-false}"
 SDK_METADATA_RETRY_COUNT="${SDK_METADATA_RETRY_COUNT:-3}"
+SDK_DOWNLOAD_TIMEOUT="${SDK_DOWNLOAD_TIMEOUT:-3600}"
+SDK_DOWNLOAD_REQUEST_TIMEOUT="${SDK_DOWNLOAD_REQUEST_TIMEOUT:-1800}"
+SDK_DOWNLOAD_RETRY_COUNT="${SDK_DOWNLOAD_RETRY_COUNT:-12}"
 OPENWRT_SIGNING_KEY_FINGERPRINT="${OPENWRT_SIGNING_KEY_FINGERPRINT:-8A8BC12F46B836C0F9CDB36F1D53D1877742E911}"
 PACKAGE_CONFIG_FILES="${PACKAGE_CONFIG_FILES:-${CONFIG_FILES:-configs/x86-64.config configs/Packages.config}}"
 unset CONFIG_FILES
@@ -181,6 +184,17 @@ download_http_file() {
   local max_time="${3:-120}"
   local temporary_file
   local exit_code=0
+  local remaining
+  local fallback_retries=(--retry 2 --retry-all-errors --retry-max-time "$max_time")
+
+  if [ -n "${SDK_DOWNLOAD_DEADLINE:-}" ]; then
+    remaining=$((SDK_DOWNLOAD_DEADLINE - SECONDS))
+    [ "$remaining" -gt 0 ] || return 1
+    [ "$max_time" -le "$remaining" ] || max_time="$remaining"
+    # Snapshot refreshes share the archive deadline. Their outer retry loop
+    # handles retries so curl cannot start another request beyond the budget.
+    fallback_retries=()
+  fi
 
   temporary_file="$(mktemp "$RUNNER_TEMP/openwrt-download.XXXXXX")" || return 1
   if curl -fLsS \
@@ -192,15 +206,21 @@ download_http_file() {
     :
   else
     exit_code=$?
+    if [ -n "${SDK_DOWNLOAD_DEADLINE:-}" ]; then
+      remaining=$((SDK_DOWNLOAD_DEADLINE - SECONDS))
+      if [ "$remaining" -le 0 ]; then
+        rm -f "$temporary_file"
+        return 1
+      fi
+      [ "$max_time" -le "$remaining" ] || max_time="$remaining"
+    fi
     log "Download failed (curl exit $exit_code); retry using HTTP/1.1: $url"
     # Some successful responses (e.g. HTTP 304) leave curl's output untouched.
     # Never allow fallback to reuse bytes from the failed first transfer.
     : > "$temporary_file" || { rm -f "$temporary_file"; return 1; }
     if curl -fLsS \
       --http1.1 \
-      --retry 2 \
-      --retry-all-errors \
-      --retry-max-time "$max_time" \
+      "${fallback_retries[@]}" \
       --connect-timeout 20 \
       --max-time "$max_time" \
       --speed-limit 1024 \
@@ -431,6 +451,7 @@ resolve_sdk_sha256() {
 prepare_sdk_metadata() {
   local attempt
   local retry_count=1
+  local retry_delay
 
   if is_true "$SDK_METADATA_REFRESH" && [ -z "$SDK_URL" ]; then
     validate_sdk_metadata_retry_count
@@ -438,13 +459,27 @@ prepare_sdk_metadata() {
   fi
 
   for ((attempt = 1; attempt <= retry_count; attempt++)); do
+    if [ -n "${SDK_DOWNLOAD_DEADLINE:-}" ] && [ "$SECONDS" -ge "$SDK_DOWNLOAD_DEADLINE" ]; then
+      log "Signed SDK metadata refresh stopped at the download deadline"
+      return 1
+    fi
     if prepare_sdk_metadata_once; then
       return 0
+    fi
+    if [ -n "${SDK_DOWNLOAD_DEADLINE:-}" ] && [ "$SECONDS" -ge "$SDK_DOWNLOAD_DEADLINE" ]; then
+      log "Signed SDK metadata refresh stopped at the download deadline"
+      return 1
     fi
 
     if [ "$attempt" -lt "$retry_count" ]; then
       log "Signed SDK metadata was inconsistent or unavailable; retry resolution (attempt $((attempt + 1))/$retry_count)"
-      sleep 2
+      retry_delay=2
+      if [ -n "${SDK_DOWNLOAD_DEADLINE:-}" ]; then
+        retry_delay=$((SDK_DOWNLOAD_DEADLINE - SECONDS))
+        [ "$retry_delay" -gt 0 ] || return 1
+        [ "$retry_delay" -le 2 ] || retry_delay=2
+      fi
+      sleep "$retry_delay"
     fi
   done
 
@@ -491,10 +526,85 @@ emit_sdk_metadata() {
 
 verify_sdk_checksum() {
   local actual_checksum
+  local archive="${1:-$SDK_ARCHIVE}"
 
-  [ -f "$SDK_ARCHIVE" ] || return 1
-  actual_checksum="$(sha256sum "$SDK_ARCHIVE" | awk '{print tolower($1)}')"
+  [ -f "$archive" ] || return 1
+  actual_checksum="$(sha256sum "$archive" | awk '{print tolower($1)}')"
   [ "$actual_checksum" = "$EXPECTED_SDK_SHA256" ]
+}
+
+validate_sdk_download_limits() {
+  local setting
+
+  for setting in SDK_DOWNLOAD_TIMEOUT SDK_DOWNLOAD_REQUEST_TIMEOUT SDK_DOWNLOAD_RETRY_COUNT; do
+    [[ "${!setting}" =~ ^[1-9][0-9]*$ ]] || die "$setting must be a positive integer: ${!setting}"
+  done
+}
+
+download_sdk_archive() {
+  local url="$1"
+  local partial="$2"
+  local deadline
+  local attempt
+  local exit_code=1
+  local http_code
+  local offset
+  local remaining
+  local request_timeout
+
+  validate_sdk_download_limits
+  deadline="${SDK_DOWNLOAD_DEADLINE:-$((SECONDS + SDK_DOWNLOAD_TIMEOUT))}"
+  for ((attempt = 1; attempt <= SDK_DOWNLOAD_RETRY_COUNT; attempt++)); do
+    remaining=$((deadline - SECONDS))
+    if [ "$remaining" -le 0 ]; then
+      log "SDK download time budget exhausted; keeping incomplete archive for verified resumption"
+      return 1
+    fi
+    request_timeout="$SDK_DOWNLOAD_REQUEST_TIMEOUT"
+    [ "$request_timeout" -le "$remaining" ] || request_timeout="$remaining"
+    offset=0
+    [ ! -f "$partial" ] || offset="$(wc -c < "$partial")"
+    log "SDK transfer $attempt/$SDK_DOWNLOAD_RETRY_COUNT: resume at $offset bytes; ${remaining}s remaining"
+
+    # Recompute -C on every invocation. curl's internal retries can reset the
+    # output to the original offset and discard progress from later transfers.
+    if http_code="$(curl -fLsS --http1.1 \
+      --continue-at - \
+      --connect-timeout 20 \
+      --max-time "$request_timeout" \
+      --speed-limit 1024 \
+      --speed-time 60 \
+      --write-out '%{http_code}' \
+      "$url" -o "$partial")"; then
+      # curl can report success for HTTP 416 when using -C. Verify that the
+      # checkpoint is actually complete before treating that response as done.
+      [ "$http_code" = 416 ] || return 0
+      exit_code=0
+    else
+      exit_code=$?
+    fi
+
+    # A complete checkpoint may receive HTTP 416, or a connection can close
+    # after the last byte. The trusted hash remains the authority in both cases.
+    if verify_sdk_checksum "$partial"; then
+      return 0
+    fi
+    if [ "$exit_code" -eq 33 ] || [ "$http_code" = 416 ]; then
+      log "Server did not accept SDK resumption; restart with an empty archive"
+      rm -f "$partial"
+    fi
+    log "SDK transfer incomplete (curl exit $exit_code, HTTP ${http_code:-unknown}); retain progress for retry"
+    if [ "$attempt" -lt "$SDK_DOWNLOAD_RETRY_COUNT" ] && [ "$((deadline - SECONDS))" -gt 0 ]; then
+      remaining=$((deadline - SECONDS))
+      if [ "$remaining" -gt 2 ]; then
+        sleep 2
+      else
+        sleep "$remaining"
+      fi
+    fi
+  done
+  [ "$exit_code" -ne 0 ] || exit_code=1
+  return "$exit_code"
 }
 
 download_sdk() {
@@ -512,8 +622,6 @@ download_sdk() {
     log "Discard cached SDK archive with invalid SHA-256: $SDK_ARCHIVE"
     rm -f "$SDK_ARCHIVE"
   fi
-  rm -f "$temporary_archive"
-
   case "$resolved_url" in
     file://*)
       if ! cp "${resolved_url#file://}" "$temporary_archive"; then
@@ -528,8 +636,7 @@ download_sdk() {
       fi
       ;;
     *)
-      if ! download_http_file "$resolved_url" "$temporary_archive" 900; then
-        rm -f "$temporary_archive"
+      if ! verify_sdk_checksum "$temporary_archive" && ! download_sdk_archive "$resolved_url" "$temporary_archive"; then
         return 1
       fi
       ;;
@@ -553,22 +660,32 @@ download_sdk() {
 
 download_sdk_with_metadata_retry() {
   local attempt
+  local previous_archive
+  local SDK_DOWNLOAD_DEADLINE
 
   validate_sdk_metadata_retry_count
+  validate_sdk_download_limits
+  SDK_DOWNLOAD_DEADLINE=$((SECONDS + SDK_DOWNLOAD_TIMEOUT))
 
   for ((attempt = 1; attempt <= SDK_METADATA_RETRY_COUNT; attempt++)); do
     if download_sdk "$RESOLVED_SDK_URL"; then
       return 0
     fi
 
-    if ! is_true "$SDK_METADATA_REFRESH" || [ "$attempt" -eq "$SDK_METADATA_RETRY_COUNT" ]; then
+    if ! is_true "$SDK_METADATA_REFRESH" || [ "$attempt" -eq "$SDK_METADATA_RETRY_COUNT" ] ||
+      [ "$SECONDS" -ge "$SDK_DOWNLOAD_DEADLINE" ]; then
       break
     fi
 
     log "SDK download or verification failed; re-resolve signed metadata (attempt $((attempt + 1))/$SDK_METADATA_RETRY_COUNT)"
     SDK_URL=""
     SDK_SHA256=""
-    prepare_sdk_metadata
+    previous_archive="$SDK_ARCHIVE"
+    prepare_sdk_metadata || break
+    if [ "$previous_archive" != "$SDK_ARCHIVE" ]; then
+      rm -f "${previous_archive}.part"
+      log "Signed SDK metadata changed; discarded the previous incomplete archive"
+    fi
   done
 
   die "Unable to download an SDK matching verified metadata after $attempt attempt(s)"

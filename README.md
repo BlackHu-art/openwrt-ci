@@ -34,7 +34,7 @@
 - `package` 默认是 `ALL`，下拉只保留独立软件包 `nginx`，以及 `luci-app-frpc`、`luci-app-frps`、`luci-app-gecoosac`、`luci-app-lucky`、`luci-app-openlist2`、`luci-theme-argon`、`luci-theme-aurora` 这些 LuCI 入口；选择 LuCI 软件包时会同时编译并发布对应基础包或主题配置插件。旧的 `frp`、`gecoosac`、`lucky`、`openlist2` 输入仅作为兼容别名保留。
 - 脚本按每个矩阵的版本和架构，从 `https://downloads.openwrt.org/.versions.json` 选择稳定版、从目标目录的 `sha256sums` 定位 SDK，不依赖可能返回 502 的 HTML 目录页面。随后验证官方签名和 SHA-256，并在本次构建中使用同一组精确 URL 与哈希，避免 snapshots 更新造成前后不一致。
 - SDK 签名信任锚来自 OpenWrt 官方 [`openwrt/keyring`](https://github.com/openwrt/keyring) 密钥仓库的构建公钥，仓库内固定主指纹为 `8A8BC12F46B836C0F9CDB36F1D53D1877742E911`；未知签名会直接终止构建，官方换钥时需人工核对后更新公钥。
-- SDK 和元数据下载在首次请求失败后会切换到 HTTP/1.1 重试；元数据单次传输最多 120 秒，SDK 最多 900 秒，连续 60 秒低于 1 KiB/s 会中止本次传输。回退仍会验证签名及 SHA-256，失败或不完整的响应不会进入解析或 SDK 缓存。
+- 元数据单次传输最多 120 秒，首次失败后切换到 HTTP/1.1 重试；SDK 大文件直接使用 HTTP/1.1，并在断流或超时后从已下载的位置续传。SDK 单次请求默认最多 30 分钟，总下载预算为 60 分钟（各轮快照元数据刷新共用预算），每轮最多 12 次传输；可通过 `SDK_DOWNLOAD_REQUEST_TIMEOUT`、`SDK_DOWNLOAD_TIMEOUT`（单位：秒）和 `SDK_DOWNLOAD_RETRY_COUNT` 调整。连续 60 秒低于 1 KiB/s 会中止本次传输并保留续传进度；只有通过签名清单中 SHA-256 校验的完整 SDK 才会用于构建，元数据对应的文件名或哈希变化、下载内容损坏时会丢弃旧片段。
 - `Build-Packages` 不使用 GitHub Actions 持久缓存；SDK 每次构建都会重新下载并验证签名和 SHA-256，软件包源码也会重新拉取。
 - 实际编译的软件包会参考 `configs/Packages.config` 里的软件包选项，例如 `frpc`、`frps`、`nginx-full`、`lucky`、`luci-app-gecoosac`、`luci-app-argon-config`、`luci-app-aurora-config`、`luci-app-lucky`、`luci-app-openlist2`、`luci-theme-argon` 和 `luci-theme-aurora`。
 - 编译的软件包来源及跟踪分支如下；每次构建都会拉取对应分支的最新提交，并把实际 commit 写入 `BUILDINFO.json`，不会固定第三方源码版本：
