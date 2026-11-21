@@ -1,0 +1,77 @@
+From: Dmitry Volyntsev <xeioex@nginx.com>
+Subject: njs: fix unterminated string initializers with GCC 15
+
+Backport the fixes to njs c5a29a7af8894ee1ec44ebda71ef0ea1f2a31af6.
+The QuickJS query string module was added after this revision.
+
+Upstream:
+https://github.com/nginx/njs/commit/e3cfb4f70e203866c1bd06e5fb28fcdc7dd967f8
+https://github.com/nginx/njs/commit/ddac1cf8e78c5e6c4ea2ec33d48c506939fd2f57
+
+diff --git a/nginx-mod-njs/src/njs.h b/nginx-mod-njs/src/njs.h
+index 8950a0d..1a3c5d5 100644
+--- a/nginx-mod-njs/src/njs.h
++++ b/nginx-mod-njs/src/njs.h
+@@ -177,7 +177,7 @@ struct njs_external_s {
+
+     union {
+         struct {
+-            const char              value[15]; /* NJS_STRING_SHORT + 1. */
++            const char              *value;
+             njs_prop_handler_t      handler;
+             uint16_t                magic16;
+             uint32_t                magic32;
+diff --git a/nginx-mod-njs/src/njs_sprintf.c b/nginx-mod-njs/src/njs_sprintf.c
+index 16ae900..64fae9c 100644
+--- a/nginx-mod-njs/src/njs_sprintf.c
++++ b/nginx-mod-njs/src/njs_sprintf.c
+@@ -95,8 +95,8 @@ njs_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
+     njs_bool_t     sign;
+     njs_sprintf_t  spf;
+
+-    static const u_char  hexadecimal[16] = "0123456789abcdef";
+-    static const u_char  HEXADECIMAL[16] = "0123456789ABCDEF";
++    static const u_char  hexadecimal[] = "0123456789abcdef";
++    static const u_char  HEXADECIMAL[] = "0123456789ABCDEF";
+     static const u_char  nan[] = "[nan]";
+     static const u_char  infinity[] = "[infinity]";
+
+diff --git a/nginx-mod-njs/src/njs_string.c b/nginx-mod-njs/src/njs_string.c
+index ea22755..29705fb 100644
+--- a/nginx-mod-njs/src/njs_string.c
++++ b/nginx-mod-njs/src/njs_string.c
+@@ -361,7 +361,7 @@ njs_encode_hex(njs_str_t *dst, const njs_str_t *src)
+     size_t        i, len;
+     const u_char  *start;
+
+-    static const u_char  hex[16] = "0123456789abcdef";
++    static const u_char  hex[] = "0123456789abcdef";
+
+     len = src->length;
+     start = src->start;
+diff --git a/nginx-mod-njs/src/njs_string.h b/nginx-mod-njs/src/njs_string.h
+index 9b47887..3a2ca44 100644
+--- a/nginx-mod-njs/src/njs_string.h
++++ b/nginx-mod-njs/src/njs_string.h
+@@ -212,7 +212,7 @@ njs_string_encode(const uint32_t *escape, size_t size, const u_char *src,
+     u_char *dst)
+ {
+     uint8_t              byte;
+-    static const u_char  hex[16] = "0123456789ABCDEF";
++    static const u_char  hex[] = "0123456789ABCDEF";
+
+     do {
+         byte = *src++;
+diff --git a/nginx-mod-njs/src/qjs_buffer.c b/nginx-mod-njs/src/qjs_buffer.c
+index 2487c63..b004d2d 100644
+--- a/nginx-mod-njs/src/qjs_buffer.c
++++ b/nginx-mod-njs/src/qjs_buffer.c
+@@ -2387,7 +2387,7 @@ qjs_hex_encode(JSContext *ctx, const njs_str_t *src, njs_str_t *dst)
+     size_t        i, len;
+     const u_char  *start;
+
+-    static const u_char  hex[16] = "0123456789abcdef";
++    static const u_char  hex[] = "0123456789abcdef";
+
+     len = src->length;
+     start = src->start;

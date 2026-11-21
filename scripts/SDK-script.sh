@@ -854,7 +854,17 @@ load_custom_packages() {
       "$SDK_ROOT/feeds/luci/applications/luci-app-frps/Makefile"
   fi
 
-  selection_in nginx && git_sparse_clone "$NGINX_REF" "$PACKAGES_REPO" feeds/packages net/nginx
+  if selection_in nginx; then
+    git_sparse_clone "$NGINX_REF" "$PACKAGES_REPO" feeds/packages net/nginx
+
+    local nginx_dir="$SDK_ROOT/feeds/packages/net/nginx"
+    # This backport applies to the pinned njs source, before upstream's GCC 15 fixes.
+    if grep -Eq '^[[:space:]]*SOURCE_VERSION:=c5a29a7af8894ee1ec44ebda71ef0ea1f2a31af6[[:space:]]*$' "$nginx_dir/Makefile"; then
+      mkdir -p "$nginx_dir/patches/nginx-mod-njs"
+      cp "$WORKSPACE/patches/nginx-mod-njs/"*.patch "$nginx_dir/patches/nginx-mod-njs/"
+      log "Backport njs GCC 15 fixes"
+    fi
+  fi
 
   if selection_in luci-app-gecoosac; then
     git_clone_package_repo "$GECOOSAC_REPO" "$GECOOSAC_REF" "$SDK_ROOT/package/luci-app-gecoosac" \

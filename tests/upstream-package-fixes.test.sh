@@ -20,7 +20,11 @@ fixture_root="$test_root/source"
 mkdir -p "$fixture_root"/{lang/golang,net/frp,net/nginx,applications/luci-app-frpc,applications/luci-app-frps,lucky,luci-app-lucky}
 printf 'updated Go fixture\n' > "$fixture_root/lang/golang/Makefile"
 printf 'frp fixture\n' > "$fixture_root/net/frp/Makefile"
-printf 'nginx fixture\n' > "$fixture_root/net/nginx/Makefile"
+cat > "$fixture_root/net/nginx/Makefile" <<'EOF'
+define Download/nginx-mod-njs
+  SOURCE_VERSION:=c5a29a7af8894ee1ec44ebda71ef0ea1f2a31af6
+endef
+EOF
 printf 'lucky fixture\n' > "$fixture_root/lucky/Makefile"
 printf 'lucky LuCI fixture\n' > "$fixture_root/luci-app-lucky/Makefile"
 for app in frpc frps; do
@@ -131,6 +135,7 @@ run_sdk_case() (
   local LUCKY_REPO="$fixture_url"
   local RUNNER_TEMP="$test_root/sdk-temp-$selection"
   local SDK_ROOT="$build_root"
+  local GITHUB_WORKSPACE="$repo_root"
   local PACKAGE_SELECTION="$selection"
   mkdir -p "$RUNNER_TEMP"
   seed_old_go "$build_root"
@@ -147,6 +152,11 @@ run_sdk_case() (
       ;;
     *) assert_frp_dependencies "$build_root" frpc frps ;;
   esac
+  if [ "$selection" = nginx ]; then
+    local patch_dir="$build_root/feeds/packages/net/nginx/patches/nginx-mod-njs"
+    [ -s "$patch_dir/105-gcc-15.patch" ] && [ -s "$patch_dir/106-annotate-short-strings.patch" ] ||
+      fail 'SDK nginx checkout did not receive both GCC 15 njs patches'
+  fi
   printf 'PASS SDK %s\n' "$selection"
 )
 

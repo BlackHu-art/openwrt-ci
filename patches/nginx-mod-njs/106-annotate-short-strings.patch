@@ -1,0 +1,26 @@
+Subject: njs: annotate length-counted short strings
+
+The 16-byte njs value stores up to 14 string bytes alongside its length.
+Mark the buffer as nonstring on compilers that support the attribute, so
+exactly 14-byte literals can initialize it without a terminator.
+
+diff --git a/nginx-mod-njs/src/njs_value.h b/nginx-mod-njs/src/njs_value.h
+index 3751db7..7123a57 100644
+--- a/nginx-mod-njs/src/njs_value.h
++++ b/nginx-mod-njs/src/njs_value.h
+@@ -147,7 +147,14 @@ union njs_value_s {
+         uint8_t                       size:4;
+         uint8_t                       length:4;
+
+-        u_char                        start[NJS_STRING_SHORT];
++        /* Short strings are length-counted and may fill the buffer. */
++        u_char                        start[NJS_STRING_SHORT]
++#ifdef __has_attribute
++#if __has_attribute(nonstring)
++                                      __attribute__((nonstring))
++#endif
++#endif
++                                      ;
+     } short_string;
+
+     struct {
